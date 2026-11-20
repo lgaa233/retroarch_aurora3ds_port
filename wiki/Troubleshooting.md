@@ -128,8 +128,8 @@ replace it with the values from the session.
 
 ## What this version does
 
-Version 0.1.5 runs on the console. Picture, the menu, saves, save
-states, and PCM sound work. `make test` also runs the cores on a PC
-with synthetic ROMs. [Limitations](Limitations.md) lists the boundaries
-that are still real, such as silent NES games and no New 3DS extra
-buttons.
+Version 0.1.6 runs on the console. Picture, the menu, saves, save
+states, and PCM sound work on all built-in cores, including NES.
+`make test` also runs the cores on a PC with synthetic ROMs.
+[Limitations](Limitations.md) lists the boundaries that are still real,
+such as incomplete NES DMC sample playback and no New 3DS extra buttons.

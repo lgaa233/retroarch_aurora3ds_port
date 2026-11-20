@@ -1,11 +1,12 @@
 # Supported Systems
 
-Version 0.1.5 links four cores into `RetroArch.bin`. There is no core
+Version 0.1.6 links four cores into `RetroArch.bin`. There is no core
 downloader and no dynamic loader. A system that is not in the table is
 not playable by renaming the file.
 
 All four cores are integer-only, which is why they were chosen for an
-ARM9 with no FPU. NES produces no samples. The other cores play PCM. See
+ARM9 with no FPU. NES outputs PCM at 32768 Hz from a lightweight 2A03 APU.
+The other cores also play PCM. See
 [Limitations](Limitations.md).
 
 | Core (as shown in Information) | System | Extensions | SRAM `.srm` | Save states |
