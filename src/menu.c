@@ -389,6 +389,7 @@ enum {
   SET_FRAMESKIP,
   SET_SHOW_FPS,
   SET_FAST_FORWARD,
+  SET_VOLUME,
   SET_BACK,
   SET_COUNT
 };
@@ -420,6 +421,15 @@ static ra_menu_action_t tick_settings(void) {
     case SET_FAST_FORWARD:
       ra_config.fast_forward = !ra_config.fast_forward;
       break;
+    case SET_VOLUME:
+      if (down & KEY_A)
+        d = ra_config.volume >= 10 ? -10 : 1;
+      ra_config.volume += d;
+      if (ra_config.volume < 0)
+        ra_config.volume = 0;
+      if (ra_config.volume > 10)
+        ra_config.volume = 10;
+      break;
     case SET_BACK:
       if (down & KEY_A) {
         ra_config_save();
@@ -442,7 +452,9 @@ static ra_menu_action_t tick_settings(void) {
            ra_config.show_fps ? "On" : "Off");
   draw_row(3, i == SET_FAST_FORWARD, MENU_TEXT, "Fast Fwd (hold R)  < %s >",
            ra_config.fast_forward ? "On" : "Off");
-  draw_row(4, i == SET_BACK, MENU_TEXT, "Back");
+  draw_row(4, i == SET_VOLUME, MENU_TEXT, "Volume             < %d%% >",
+           ra_config.volume * 100 / 8);
+  draw_row(5, i == SET_BACK, MENU_TEXT, "Back");
   return RA_MENU_NONE;
 }
 
@@ -465,8 +477,12 @@ static ra_menu_action_t tick_info(void) {
   row++;
   draw_row(row++, false, MENU_DIM, "Console: %s",
            sys_is_new3ds() ? "New 3DS / New 2DS" : "Old 3DS / 2DS");
-  draw_row(row++, false, MENU_DIM, "CPU: ARM9 @ 134 MHz (all models)");
-  draw_row(row++, false, MENU_DIM, "Audio: stereo PCM (NES has none)");
+  draw_row(row++, false, MENU_DIM, "Cores run on the ARM9 (all models)");
+  draw_row(row++, false, MENU_DIM, "Scaler: %s, %u.%u ms a frame",
+           ra_video_path(), (unsigned)(ra_video_blit_us() / 1000u),
+           (unsigned)(ra_video_blit_us() / 100u % 10u));
+  draw_row(row++, false, MENU_DIM, "Audio: 32.8 kHz PCM, %u underruns",
+           (unsigned)ra_audio_underruns());
   row++;
   draw_row(row++, false, MENU_DIM, "Saves:  %s", ra_dir_saves());
   draw_row(row++, false, MENU_DIM, "States: %s", ra_dir_states());
