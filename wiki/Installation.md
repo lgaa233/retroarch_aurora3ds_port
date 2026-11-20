@@ -1,6 +1,6 @@
 # Installation
 
-RetroArch for AuroraOS 0.1.4 is an `AURC` container. It needs **AuroraOS
+RetroArch for AuroraOS 0.1.5 is an `AURC` container. It needs **AuroraOS
 Beta 6 v0.1.5 or later**. Older AuroraOS builds cannot launch this file.
 
 You also need a Nintendo 3DS that already runs Luma3DS, and an SD card you

@@ -1,6 +1,6 @@
 # Supported Systems
 
-Version 0.1.4 links four cores into `RetroArch.bin`. There is no core
+Version 0.1.5 links four cores into `RetroArch.bin`. There is no core
 downloader and no dynamic loader. A system that is not in the table is
 not playable by renaming the file.
 

@@ -162,68 +162,99 @@ void ra_video_submit(const void *data, unsigned width, unsigned height,
 
   fb = gfx_framebuffer(SCREEN_TOP);
 
-  for (x = 0; x < dst_w; x++) {
-    /* Increasing address is decreasing y, so the run starts at the bottom. */
-    int y_bottom = dst_y + dst_h - 1;
-    uint8_t *run = fb + (((dst_x + x) * SCREEN_HEIGHT) +
-                         (SCREEN_HEIGHT - 1 - y_bottom)) *
-                            3;
-    uint8_t *d = colbuf;
-    int sx = lut_sx[x];
-    int y = dst_h - 1;
-
-    while (y >= 3) {
-      uint8_t b[4], g[4], rch[4];
-      int k;
-      for (k = 0; k < 4; k++) {
-        int sy = lut_sy[y - k];
-        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
-          uint32_t c = ((const uint32_t *)(src + sy * pitch))[sx];
-          b[k] = (uint8_t)c;
-          g[k] = (uint8_t)(c >> 8);
-          rch[k] = (uint8_t)(c >> 16);
-        } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
-          uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
-          b[k] = (uint8_t)((c & 0x1F) << 3);
-          g[k] = (uint8_t)(((c >> 5) & 0x1F) << 3);
-          rch[k] = (uint8_t)(((c >> 10) & 0x1F) << 3);
-        } else {
-          uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
-          b[k] = (uint8_t)((c & 0x1F) << 3);
-          g[k] = (uint8_t)((c >> 3) & 0xFC);
-          rch[k] = (uint8_t)((c >> 8) & 0xF8);
+  if (src_fmt == RETRO_PIXEL_FORMAT_RGB565 && height <= SCREEN_HEIGHT) {
+    /* Eight source columns gathered a row at a time, so each source row is
+     * read while it is still in the cache. Walking the framebuffer by column
+     * first was a cache miss per pixel. */
+    static uint16_t tile[8][SCREEN_HEIGHT];
+    int x0;
+    for (x0 = 0; x0 < dst_w; x0 += 8) {
+      int n = dst_w - x0;
+      int row, i, y;
+      if (n > 8)
+        n = 8;
+      for (row = 0; row < (int)height; row++) {
+        const uint16_t *srow =
+            (const uint16_t *)(src + (size_t)row * pitch);
+        for (i = 0; i < n; i++)
+          tile[i][row] = srow[lut_sx[x0 + i]];
+      }
+      for (i = 0; i < n; i++) {
+        int y_bottom = dst_y + dst_h - 1;
+        uint8_t *run = fb + (((dst_x + x0 + i) * SCREEN_HEIGHT) +
+                             (SCREEN_HEIGHT - 1 - y_bottom)) *
+                                3;
+        uint8_t *d = colbuf;
+        const uint16_t *col = tile[i];
+        /* Neighbouring screen columns often share one source column when
+         * the picture is enlarged. Pack that column once. */
+        if (i > 0 && lut_sx[x0 + i] == lut_sx[x0 + i - 1]) {
+          store_run(run, colbuf, (unsigned)dst_h * 3u);
+          continue;
         }
+        y = dst_h - 1;
+        while (y >= 3) {
+          uint16_t p0 = col[lut_sy[y]];
+          uint16_t p1 = col[lut_sy[y - 1]];
+          uint16_t p2 = col[lut_sy[y - 2]];
+          uint16_t p3 = col[lut_sy[y - 3]];
+          pack4(d, (uint8_t)((p0 & 31) << 3), (uint8_t)((p0 >> 3) & 0xFC),
+                (uint8_t)((p0 >> 8) & 0xF8), (uint8_t)((p1 & 31) << 3),
+                (uint8_t)((p1 >> 3) & 0xFC), (uint8_t)((p1 >> 8) & 0xF8),
+                (uint8_t)((p2 & 31) << 3), (uint8_t)((p2 >> 3) & 0xFC),
+                (uint8_t)((p2 >> 8) & 0xF8), (uint8_t)((p3 & 31) << 3),
+                (uint8_t)((p3 >> 3) & 0xFC), (uint8_t)((p3 >> 8) & 0xF8));
+          d += 12;
+          y -= 4;
+        }
+        while (y >= 0) {
+          uint16_t p = col[lut_sy[y]];
+          *d++ = (uint8_t)((p & 31) << 3);
+          *d++ = (uint8_t)((p >> 3) & 0xFC);
+          *d++ = (uint8_t)((p >> 8) & 0xF8);
+          y--;
+        }
+        store_run(run, colbuf, (unsigned)dst_h * 3u);
       }
-      pack4(d, b[0], g[0], rch[0], b[1], g[1], rch[1], b[2], g[2], rch[2],
-            b[3], g[3], rch[3]);
-      d += 12;
-      y -= 4;
     }
-    while (y >= 0) {
-      uint8_t b, g, rch;
-      int sy = lut_sy[y];
-      if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
-        uint32_t c = ((const uint32_t *)(src + sy * pitch))[sx];
-        b = (uint8_t)c;
-        g = (uint8_t)(c >> 8);
-        rch = (uint8_t)(c >> 16);
-      } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
-        uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
-        b = (uint8_t)((c & 0x1F) << 3);
-        g = (uint8_t)(((c >> 5) & 0x1F) << 3);
-        rch = (uint8_t)(((c >> 10) & 0x1F) << 3);
-      } else {
-        uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
-        b = (uint8_t)((c & 0x1F) << 3);
-        g = (uint8_t)((c >> 3) & 0xFC);
-        rch = (uint8_t)((c >> 8) & 0xF8);
+  } else {
+    for (x = 0; x < dst_w; x++) {
+      int y_bottom = dst_y + dst_h - 1;
+      uint8_t *run = fb + (((dst_x + x) * SCREEN_HEIGHT) +
+                           (SCREEN_HEIGHT - 1 - y_bottom)) *
+                              3;
+      uint8_t *d = colbuf;
+      int sx = lut_sx[x];
+      int y = dst_h - 1;
+      while (y >= 0) {
+        uint32_t c32 = 0;
+        uint16_t c16 = 0;
+        uint8_t b, g, rch;
+        int sy = lut_sy[y];
+        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888)
+          c32 = ((const uint32_t *)(src + sy * pitch))[sx];
+        else
+          c16 = ((const uint16_t *)(src + sy * pitch))[sx];
+        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
+          b = (uint8_t)c32;
+          g = (uint8_t)(c32 >> 8);
+          rch = (uint8_t)(c32 >> 16);
+        } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
+          b = (uint8_t)((c16 & 0x1F) << 3);
+          g = (uint8_t)(((c16 >> 5) & 0x1F) << 3);
+          rch = (uint8_t)(((c16 >> 10) & 0x1F) << 3);
+        } else {
+          b = (uint8_t)((c16 & 0x1F) << 3);
+          g = (uint8_t)((c16 >> 3) & 0xFC);
+          rch = (uint8_t)((c16 >> 8) & 0xF8);
+        }
+        *d++ = b;
+        *d++ = g;
+        *d++ = rch;
+        y--;
       }
-      *d++ = b;
-      *d++ = g;
-      *d++ = rch;
-      y--;
+      store_run(run, colbuf, (unsigned)dst_h * 3u);
     }
-    store_run(run, colbuf, (unsigned)dst_h * 3u);
   }
 
   gfx_mark(SCREEN_TOP);

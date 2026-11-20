@@ -175,27 +175,7 @@ int main(void) {
     }
 
     ra_input_update();
-    {
-      /* Expanded frames cost more to draw than 16 ms. Run the emulator
-       * often enough to stay near 60 Hz, and only copy the last picture,
-       * so Stretch and Fit do not play in slow motion. */
-      static uint32_t emu_clock;
-      static int fresh = 1;
-      uint32_t now = sys_millis();
-      int guard = 0;
-      if (fresh || now - emu_clock > 80) {
-        emu_clock = now;
-        fresh = 0;
-      }
-      while (emu_clock + 16 < now && guard < 3) {
-        ra_video_skip_next();
-        ra_content.core->run();
-        emu_clock += 16;
-        guard++;
-      }
-      ra_content.core->run();
-      emu_clock += 16;
-    }
+    ra_content.core->run();
 
     if (ra_config.fast_forward && (hid_keys_held() & KEY_R)) {
       int extra;

@@ -52,22 +52,15 @@ static uint32_t played_now(void) {
 
 static void push_sample(int32_t l, int32_t r) {
   uint32_t p;
-  /* One-pole lowpass, then a hard ceiling so a square wave cannot slam. */
-  lp_l += (l - lp_l) >> 2;
-  lp_r += (r - lp_r) >> 2;
-  l = lp_l;
-  r = lp_r;
-  if (l > 9000)
-    l = 9000;
-  else if (l < -9000)
-    l = -9000;
-  if (r > 9000)
-    r = 9000;
-  else if (r < -9000)
-    r = -9000;
+  /* Half volume, then a two-point average. No hard clip: clipping was the
+   * buzz. The average takes the edge off a square without muffling it. */
+  l >>= 1;
+  r >>= 1;
+  lp_l = (lp_l + l) >> 1;
+  lp_r = (lp_r + r) >> 1;
   p = written & (RA_AUDIO_RING - 1u);
-  ring_l[p] = (int16_t)l;
-  ring_r[p] = (int16_t)r;
+  ring_l[p] = (int16_t)lp_l;
+  ring_r[p] = (int16_t)lp_r;
   written++;
 }
 
