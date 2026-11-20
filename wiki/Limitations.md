@@ -1,6 +1,6 @@
 # Limitations
 
-This is RetroArch **0.1.5** for AuroraOS: a working libretro frontend with
+This is RetroArch **0.1.6** for AuroraOS: a working libretro frontend with
 four statically linked cores. Picture, controls, the menu, SRAM saves,
 save states, and PCM sound work on the console. The list below is what
 this version does, not a list of broken features.
@@ -26,7 +26,9 @@ lowpass, then plays it quieter than full scale, so square waves are not
 a buzz. Samples loop on CSND voices 6 and 7. Fast-forward drops extra
 batches so the sound does not fall behind.
 
-NES gameplay works and stays silent. agnes does not emulate the NES APU.
+NES uses agnes for gameplay plus a lightweight 2A03 APU for PCM sound.
+DMC (sample) playback is incomplete, so a few titles may lack drums or
+speech effects.
 Master System and Game Gear audio is the PSG, generated at 22050 Hz and
 played at 32768 Hz. FM stays off so a frame still fits.
 

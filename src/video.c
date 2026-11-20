@@ -163,21 +163,28 @@ void ra_video_submit(const void *data, unsigned width, unsigned height,
   fb = gfx_framebuffer(SCREEN_TOP);
 
   if (src_fmt == RETRO_PIXEL_FORMAT_RGB565 && height <= SCREEN_HEIGHT) {
-    /* Eight source columns gathered a row at a time, so each source row is
-     * read while it is still in the cache. Walking the framebuffer by column
-     * first was a cache miss per pixel. */
-    static uint16_t tile[8][SCREEN_HEIGHT];
-    int x0;
-    for (x0 = 0; x0 < dst_w; x0 += 8) {
+    /* Cache every source row once, then scale by column — repeating the row
+     * walk for each output tile was the Fit/Stretch bottleneck. */
+    static uint16_t srows[SCREEN_HEIGHT][256];
+    static uint16_t tile[16][SCREEN_HEIGHT];
+    int row, x0;
+    if ((int)width > 256)
+      return;
+    for (row = 0; row < (int)height; row++) {
+      const uint16_t *srow = (const uint16_t *)(src + (size_t)row * pitch);
+      int x;
+      for (x = 0; x < (int)width; x++)
+        srows[row][x] = srow[x];
+    }
+    for (x0 = 0; x0 < dst_w; x0 += 16) {
       int n = dst_w - x0;
-      int row, i, y;
-      if (n > 8)
-        n = 8;
-      for (row = 0; row < (int)height; row++) {
-        const uint16_t *srow =
-            (const uint16_t *)(src + (size_t)row * pitch);
-        for (i = 0; i < n; i++)
-          tile[i][row] = srow[lut_sx[x0 + i]];
+      int i, y;
+      if (n > 16)
+        n = 16;
+      for (i = 0; i < n; i++) {
+        int sx = lut_sx[x0 + i];
+        for (row = 0; row < (int)height; row++)
+          tile[i][row] = srows[row][sx];
       }
       for (i = 0; i < n; i++) {
         int y_bottom = dst_y + dst_h - 1;

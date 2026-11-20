@@ -59,9 +59,9 @@ The size and mapper rules are collected on
 
 ## A game is silent
 
-Sound works. Game Boy, Master System, Game Gear, SG-1000, ColecoVision,
-and CHIP-8 play stereo PCM. NES is the exception: agnes has no audio
-chip, so those games run with no sound.
+Sound works on all built-in cores, including NES. If a game is silent,
+confirm you launched RetroArch from the Aurora Home Menu (not a direct
+`*.3dsx` shortcut) and that you resumed after opening the in-game menu.
 
 Open RetroArch from the Aurora Home Menu. The ARM11 core, which owns
 the speakers, is only there for an app started that way. Opening the

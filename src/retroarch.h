@@ -10,7 +10,7 @@
 #include <libretro.h>
 #include "cores/core.h"
 
-#define RA_VERSION "0.1.5"
+#define RA_VERSION "0.1.6"
 #define RA_NAME "RetroArch"
 
 #define RA_PATH_MAX 300

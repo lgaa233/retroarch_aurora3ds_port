@@ -195,6 +195,11 @@ static void exercise(const ra_core_t *core, uint8_t *rom, size_t rom_size,
 
   CHECK(core->load_game(&game), "load_game");
   CHECK(seen_fmt == RETRO_PIXEL_FORMAT_RGB565, "pixel format is RGB565");
+  if (game.size >= 16 && rom[0] == 'N') {
+    struct retro_system_av_info av;
+    core->get_system_av_info(&av);
+    CHECK(av.timing.sample_rate > 0.0, "NES exposes PCM sample rate");
+  }
 
   run_frames(core, 10);
   snprintf(what, sizeof(what), "ran 10 frames (%d video calls)", video_calls);

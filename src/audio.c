@@ -23,12 +23,10 @@ extern void app_core_post(uint32_t cmd, uint32_t a0, uint32_t a1, uint32_t a2,
 extern void os_dcache_clean_range(const void *addr, uint32_t len);
 
 #define RA_AUDIO_RING 4096u
-#define RA_AUDIO_AHEAD 512u
+#define RA_AUDIO_AHEAD 384u
 #define RA_AUDIO_VOICE_L 6u
 #define RA_AUDIO_VOICE_R 7u
-/* Half of full scale. The cores emit hard squares; full volume clips. */
-#define RA_AUDIO_VOL 0x4000u
-/* Everything is played at this rate. Lower-rate cores are interpolated up. */
+#define RA_AUDIO_VOL 0x4800u
 #define RA_AUDIO_OUT 32768u
 
 static int16_t *ring_l = (int16_t *)(uintptr_t)AUDIO_PCM_ADDR;
@@ -38,8 +36,6 @@ static int playing;
 static uint32_t written;
 static uint64_t t0;
 
-/* Linear upsampler plus a one-pole lowpass. The lowpass is what takes the
- * edge off Game Boy and PSG squares, which otherwise come out as a buzz. */
 static int32_t prev_l, prev_r;
 static int have_prev;
 static uint32_t res_acc;
@@ -52,15 +48,14 @@ static uint32_t played_now(void) {
 
 static void push_sample(int32_t l, int32_t r) {
   uint32_t p;
-  /* Half volume, then a two-point average. No hard clip: clipping was the
-   * buzz. The average takes the edge off a square without muffling it. */
-  l >>= 1;
-  r >>= 1;
-  lp_l = (lp_l + l) >> 1;
-  lp_r = (lp_r + r) >> 1;
+  /* Light smoothing keeps square waves from clipping the DAC. */
+  lp_l += (l - lp_l) >> 3;
+  lp_r += (r - lp_r) >> 3;
+  l = lp_l;
+  r = lp_r;
   p = written & (RA_AUDIO_RING - 1u);
-  ring_l[p] = (int16_t)lp_l;
-  ring_r[p] = (int16_t)lp_r;
+  ring_l[p] = (int16_t)l;
+  ring_r[p] = (int16_t)r;
   written++;
 }
 
@@ -122,9 +117,16 @@ size_t ra_audio_batch_cb(const int16_t *data, size_t frames) {
     return frames;
 
   played = played_now();
-  if ((int32_t)(played + 64u - written) > 0)
-    written = played + RA_AUDIO_AHEAD;
-  if ((int32_t)(written - played) > 2048)
+  /* Far behind: pad with silence instead of jumping the write cursor. */
+  if ((int32_t)(played + 96u - written) > 0) {
+    uint32_t pad = played + RA_AUDIO_AHEAD - written;
+    uint32_t k;
+    if (pad > 256u)
+      pad = 256u;
+    for (k = 0; k < pad; k++)
+      push_sample(0, 0);
+  }
+  if ((int32_t)(written - played) > 1536)
     return frames;
 
   at = written;
@@ -136,16 +138,21 @@ size_t ra_audio_batch_cb(const int16_t *data, size_t frames) {
       prev_l = cur_l;
       prev_r = cur_r;
       have_prev = 1;
+      res_acc += want;
+      while (res_acc >= RA_AUDIO_OUT) {
+        res_acc -= RA_AUDIO_OUT;
+        push_sample(cur_l, cur_r);
+      }
       continue;
     }
-    /* How many output samples this input step covers. 32768 in -> 1,
-     * 22050 in -> 1 or 2, so the speaker always runs at RA_AUDIO_OUT. */
-    res_acc += RA_AUDIO_OUT;
+    res_acc += want;
     n = 0;
-    while (res_acc >= want && n < 4u) {
-      res_acc -= want;
+    while (res_acc >= RA_AUDIO_OUT && n < 8u) {
+      res_acc -= RA_AUDIO_OUT;
       n++;
     }
+    if (n == 0)
+      continue;
     for (k = 1; k <= n; k++) {
       int32_t l = prev_l + (cur_l - prev_l) * (int32_t)k / (int32_t)n;
       int32_t r = prev_r + (cur_r - prev_r) * (int32_t)k / (int32_t)n;

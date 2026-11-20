@@ -12,6 +12,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ra_nes_apu.h"
+
+#define AGNES_HOOK_APU
+static void agnes_hook_apu_step(uint32_t cycles) {
+  ra_nes_apu_step(cycles);
+}
+static void agnes_hook_apu_write(uint16_t addr, uint8_t val) {
+  ra_nes_apu_write(addr, val);
+}
+static uint8_t agnes_hook_apu_read(uint16_t addr) {
+  return ra_nes_apu_read(addr);
+}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "agnes.c" /* also brings agnes.h and the internal types */
@@ -58,6 +71,7 @@ static void nes_set_callbacks(retro_environment_t env,
 static void nes_init(void) {
   if (!lut_ready)
     build_lut();
+  ra_nes_apu_init();
 }
 
 static void nes_deinit(void) {}
@@ -91,6 +105,7 @@ static bool nes_load_game(const struct retro_game_info *game) {
   }
 
   memset(fb, 0, sizeof(fb));
+  ra_nes_apu_reset();
   if (env_cb)
     env_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
   return true;
@@ -115,7 +130,7 @@ static void nes_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.aspect_ratio =
       (float)AGNES_SCREEN_WIDTH / (float)AGNES_SCREEN_HEIGHT;
   info->timing.fps = 60.0;
-  info->timing.sample_rate = 0.0; /* agnes has no APU */
+  info->timing.sample_rate = (double)RA_NES_APU_RATE;
 }
 
 static void nes_run(void) {
@@ -154,6 +169,13 @@ static void nes_run(void) {
   if (video_cb)
     video_cb(fb, AGNES_SCREEN_WIDTH, AGNES_SCREEN_HEIGHT,
              AGNES_SCREEN_WIDTH * sizeof(uint16_t));
+
+  if (audio_batch_cb) {
+    int16_t samples[RA_NES_APU_MAX_SAMPLES * 2];
+    size_t n = ra_nes_apu_read_samples(samples, RA_NES_APU_MAX_SAMPLES);
+    if (n)
+      audio_batch_cb(samples, n);
+  }
 }
 
 static void nes_reset(void) {
@@ -162,8 +184,10 @@ static void nes_reset(void) {
     return;
   agnes_destroy(agn);
   agn = agnes_make();
-  if (agn)
+  if (agn) {
     agnes_load_ines_data(agn, rom, rom_size);
+    ra_nes_apu_reset();
+  }
 }
 
 typedef struct {
