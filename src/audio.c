@@ -46,7 +46,7 @@ extern void os_dcache_clean_range(const void *addr, uint32_t len);
 #define RA_AUDIO_MAX 2600 /* more than this ahead: drop (fast-forward) */
 #define RA_AUDIO_FADE 256u
 /* The top screen refreshes at about 59.83 Hz and paces the frames, so a core
- * that runs at 60.10 Hz (NES) has its sound stretched by the same ratio. */
+ * that runs at a different rate has its sound stretched by the same ratio. */
 #define RA_AUDIO_SCREEN_MHZ 59830u
 #define RA_AUDIO_BEHIND 64u /* cleared this far behind the play estimate */
 #define RA_AUDIO_DRC_PPM 5000 /* at most 0.5% faster or slower */

@@ -1,7 +1,7 @@
 # Limitations
 
-This is RetroArch **0.1.7** for AuroraOS: a working libretro frontend with
-four statically linked cores. Picture, controls, the menu, SRAM saves,
+This is RetroArch **0.1.8** for AuroraOS: a working libretro frontend with
+three statically linked cores. Picture, controls, the menu, SRAM saves,
 save states, and PCM sound work on the console. The list below is what
 this version does, not a list of broken features.
 
@@ -24,18 +24,14 @@ Sound is **mono**. Aurora's CSND voices play at the same volume on both
 speakers, so the cores' stereo is mixed down and played on one looping
 voice (6). The frontend resamples each core's rate to the voice's real
 32776 Hz with a linear interpolator, a DC blocker and a ~10 kHz lowpass.
-Frames are paced by the screen (~59.8 Hz), so a core that runs at 60.1 Hz
-(NES) plays about 0.5% lower, as in RetroArch. Dynamic rate control
-(±0.5%) keeps about 20 ms of sound queued. A frame that comes late fades
+Frames are paced by the screen (~59.8 Hz), so a core that runs at a
+different rate plays a little higher or lower, as in RetroArch. Dynamic
+rate control (±0.5%) keeps about 20 ms of sound queued. A frame that comes late fades
 to silence and fades back in instead of replaying stale sound; the
 Information screen counts those underruns. Fast-forward drops extra
 batches so the sound does not fall behind. **Volume** in Settings goes
 from 0 to 125%.
 
-NES uses agnes for gameplay plus a full integer 2A03 APU: both pulses with
-sweep and envelope, triangle, noise, and DMC samples read from the ROM.
-The APU's frame and DMC IRQ flags show in `$4015`, but the IRQs are not
-raised on the CPU, so a game that times itself with them can misbehave.
 Master System and Game Gear audio is the PSG, generated at 22050 Hz.
 FM stays off so a frame still fits.
 
@@ -62,7 +58,6 @@ per frame.
 
 * `.srm` and `.stateN` names come from the ROM's base name. Two different
   games with the same file name share those files.
-* NES battery RAM is not written to an `.srm`. Use save states.
 * SMS Plus writes a 32 KB `.srm` for every game it loads, including
   SG-1000 and ColecoVision.
 * Save states match one ROM and one build of this frontend. They do not
@@ -79,8 +74,7 @@ per frame.
 * No zip or 7z loading.
 * The file browser shows at most 256 directories and known ROMs.
 * Game Boy is DMG only (Peanut-GB). No Game Boy Color and no Game Boy
-  Advance.
-* NES is iNES mappers 0, 1, 2, and 4 only (agnes 0.2.0).
+  Advance. NES / Famicom ROMs are not recognized.
 * No Master System BIOS file is loaded. ColecoVision requires your own
   8192-byte `/Aurora/ROMs/BIOS.col` and only maps keypad keys 1, 2, 3, 4,
   `*`, and `#`.

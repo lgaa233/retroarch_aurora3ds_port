@@ -11,7 +11,7 @@ directory, which for the usual install is
 
 `<romname>` is the file name without its folder and without the last
 extension. `SD:/Aurora/ROMs/rpg/Quest.gb` and
-`SD:/Aurora/ROMs/Quest.nes` both use the name `Quest`. The name is limited
+`SD:/Aurora/ROMs/Quest.sms` both use the name `Quest`. The name is limited
 to 63 characters. See [Loading ROMs](Loading-ROMs.md).
 
 The Information screen prints the real `saves` and `states` directories
@@ -39,7 +39,6 @@ Which cores actually have save RAM:
 | Core | `.srm` |
 |------|--------|
 | Peanut-GB | raw cart RAM. The size is whatever the Game Boy header reports. A cart with no RAM does not get a file |
-| agnes | never. The core returns no save RAM. NES battery progress is only in save states |
 | SMS Plus GX | always 32768 bytes, for `.sms`, `.gg`, `.sg`, and `.col`. The file is the core's whole cart-RAM buffer, including games that had no battery |
 | chip8 | never |
 
@@ -89,7 +88,6 @@ loaded:
 | Core | Magic | Also checked |
 |------|-------|----------------|
 | Peanut-GB | `PGBS` | version, size of `struct gb_s`, ROM size, cart-RAM size |
-| agnes | `AGNS` | version, agnes state size, ROM size |
 | SMS Plus GX | `SMSS` | version, state size, CRC of the loaded ROM |
 | chip8 | `CHP8` | version, ROM size |
 

@@ -45,7 +45,6 @@ typedef struct ra_core {
 } ra_core_t;
 
 extern const ra_core_t ra_core_gb;    /* Peanut-GB: Game Boy (DMG) */
-extern const ra_core_t ra_core_nes;   /* agnes: NES / Famicom */
 extern const ra_core_t ra_core_sms;   /* SMS Plus GX: Master System, Game
                                          Gear, SG-1000, ColecoVision */
 extern const ra_core_t ra_core_chip8; /* CHIP-8 */

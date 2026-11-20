@@ -170,13 +170,11 @@ static void run(const scenario_t *sc) {
 int main(void) {
   static const scenario_t sc[] = {
       {"GB 59.73 Hz, 32768", 4194304.0 / 70224.0, 32768.0, 59.83, 0},
-      {"NES 60.10 Hz, 32768", 1789773.0 * 2.0 / 59561.0, 32768.0, 59.83, 0},
       {"SMS 60 Hz, 22050", 60.0, 22050.0, 59.83, 0},
       {"CHIP-8 60 Hz, 32768", 60.0, 32768.0, 59.83, 0},
       {"GB, frames timed at 60.00 Hz", 4194304.0 / 70224.0, 32768.0, 60.0, 0},
-      {"NES, frames timed at 60.00 Hz", 1789773.0 * 2.0 / 59561.0, 32768.0,
-       60.0, 0},
-      {"NES with late frames", 1789773.0 * 2.0 / 59561.0, 32768.0, 59.83, 1},
+      {"SMS, frames timed at 60.00 Hz", 60.0, 22050.0, 60.0, 0},
+      {"GB with late frames", 4194304.0 / 70224.0, 32768.0, 59.83, 1},
   };
   size_t i;
   for (i = 0; i < sizeof(sc) / sizeof(sc[0]); i++)

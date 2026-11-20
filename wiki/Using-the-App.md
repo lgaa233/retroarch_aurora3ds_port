@@ -1,7 +1,7 @@
 # Using the App
 
 Boot AuroraOS, then open **RetroArch** from the Aurora Home Menu. The
-title bar shows `RetroArch 0.1.7`.
+title bar shows `RetroArch 0.1.8`.
 
 The app opens straight into the menu, with the cursor on **Load Content**,
 because nothing is running yet. After a game loads, the top screen is the
@@ -77,9 +77,9 @@ game's SRAM, if it has any.
 
 The Information screen lists:
 
-* `RetroArch 0.1.7 for AuroraOS` and that the cores are statically linked
-* each core's name, version, and extensions (Peanut-GB `head`, agnes
-  `0.2.0`, SMS Plus GX `head`, chip8 `1.0`)
+* `RetroArch 0.1.8 for AuroraOS` and that the cores are statically linked
+* each core's name, version, and extensions (Peanut-GB `head`, SMS Plus
+  GX `head`, chip8 `1.0`)
 * `New 3DS / New 2DS` or `Old 3DS / 2DS`
 * `Cores run on the ARM9 (all models)`
 * `Scaler: ARM11` (or `ARM9`) and the last frame's scaling time

@@ -43,8 +43,8 @@ What that does:
 2. Build the ARM11 scaler job from `arm11/` with `arm-none-eabi-gcc`
    (`build/blit11.elf`, then `build/blit11.bin`), and turn it into
    `build/blit11_blob.h` with `tools/bin2h.py`.
-3. Run `aurcc.py build` on `src/`, `third_party/smsplus/`,
-   `third_party/minigb_apu/` and `third_party/nes_apu/`.
+3. Run `aurcc.py build` on `src/`, `third_party/smsplus/`, and
+   `third_party/minigb_apu/`.
 4. Write `RetroArch.bin` in the repository root.
 
 The pinned commit is the AuroraOS revision this app is known to build
@@ -65,7 +65,7 @@ Useful defines compiled in (the same flags for the host tests):
 | `USE_Z80` | SMS Plus Z80 |
 
 The app icon is `src/RetroArch.icon` (a 32×32 picture). Version
-`0.1.7` is `RA_VERSION` in `src/retroarch.h`.
+`0.1.8` is `RA_VERSION` in `src/retroarch.h`.
 
 ## Host tests
 
@@ -75,8 +75,8 @@ make test
 
 This compiles and runs, with the host compiler:
 
-* `build/test_cores`: the cores and the NES APU, with synthetic Game Boy
-  and NES ROMs, not files from a cartridge
+* `build/test_cores`: the cores, with synthetic Game Boy, Master System,
+  and CHIP-8 ROMs, not files from a cartridge
 * `build/test_blit` and `build/test_blit9`: the scaler, in its ARM11 and
   ARM9 builds, against a reference for every scale mode
 * `build/test_audio`: `src/audio.c` against a model of the CSND voice,
@@ -110,15 +110,12 @@ src/retroarch.h         RA_VERSION, config struct, shared declarations
 src/cores/core.h        static-core descriptor
 src/cores/cores.c       core list and extension match
 src/cores/core_gb.c     Peanut-GB
-src/cores/core_nes.c    agnes
 src/cores/core_sms.c    SMS Plus GX, including BIOS.col
 src/cores/core_chip8.c  CHIP-8 interpreter
 compat/dirent.h         dirent for a plain newlib toolchain
-tests/host/             host core, APU, scaler and audio tests
-third_party/nes_apu/    the 2A03 APU used with agnes
+tests/host/             host core, scaler and audio tests
 third_party/libretro/   libretro.h (MIT)
 third_party/peanut_gb/  Peanut-GB (MIT)
-third_party/agnes/      agnes (MIT)
 third_party/smsplus/    SMS Plus GX (GPL-2.0 or later)
 ```
 

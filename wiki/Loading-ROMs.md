@@ -18,7 +18,6 @@ core. Matching ignores case, so `.GB` and `.gb` are both Game Boy.
 | Extension | System |
 |-----------|--------|
 | `.gb` `.dmg` | Game Boy (DMG) |
-| `.nes` | NES / Famicom (iNES) |
 | `.sms` | Sega Master System |
 | `.gg` | Sega Game Gear |
 | `.sg` | Sega SG-1000 |
@@ -84,9 +83,9 @@ and the **last** extension removed.
 |----------|-----------|
 | `/Aurora/ROMs/Tetris.gb` | `Tetris` |
 | `/Aurora/ROMs/gb/Tetris.gb` | `Tetris` |
-| `/Aurora/ROMs/My.Game.nes` | `My.Game` |
+| `/Aurora/ROMs/sms/My.Game.sms` | `My.Game` |
 
-`Tetris.gb` and `Tetris.nes` in different folders both use `Tetris.srm` and
+`Tetris.gb` and `Tetris.sms` in different folders both use `Tetris.srm` and
 `Tetris.state0`. Give dumps distinct base names when they are different
 games. The base name is cut at 63 characters.
 
@@ -97,7 +96,6 @@ A file with the right extension can still fail `load`:
 | Core | Rejected when |
 |------|----------------|
 | Peanut-GB | smaller than 336 bytes (`0x150`), or Peanut-GB rejects the header |
-| agnes | smaller than 16 bytes, not a readable iNES file, or a mapper other than 0, 1, 2, or 4 |
 | SMS Plus GX | smaller than 1024 bytes (`0x400`); ColecoVision also fails without a valid `BIOS.col` |
 | chip8 | empty, or larger than 3584 bytes (the machine has 4096 bytes of RAM and programs start at `0x200`) |
 

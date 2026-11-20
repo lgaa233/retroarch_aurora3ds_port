@@ -2,7 +2,7 @@
 
 RetroArch for AuroraOS is an unofficial libretro frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS) on the Nintendo 3DS.
-Version **0.1.7** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
+Version **0.1.8** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
 3DS, New 3DS XL, and New 2DS XL). Aurora apps run on the ARM9, and that CPU
 is the same chip across the family: ARM9 at 134 MHz, with no floating-point
 unit.
@@ -17,8 +17,7 @@ binary.
 The picture is on the top screen. The bottom screen is status and help.
 Picture, menu, SRAM saves, save states, and PCM sound all work on the
 console. Game Boy, Master System, Game Gear, SG-1000, ColecoVision,
-CHIP-8, and NES have sound (NES uses agnes for gameplay plus a full
-integer 2A03 APU, DMC included). Sound is mono, resampled with dynamic
+and CHIP-8 have sound. Sound is mono, resampled with dynamic
 rate control, with a volume setting. With AuroraOS core 116 or later the
 picture is scaled on the ARM11, which keeps Fit and Stretch at full speed.
 
@@ -34,7 +33,6 @@ text is later copied into that tab.
 | Core | System | Extensions | Battery save | Save states |
 |------|--------|------------|--------------|-------------|
 | Peanut-GB | Game Boy (DMG) | `.gb` `.dmg` | yes | yes |
-| agnes 0.2.0 | NES / Famicom | `.nes` | no | yes |
 | SMS Plus GX | Master System, Game Gear, SG-1000, ColecoVision | `.sms` `.gg` `.sg` `.col` | 32 KB `.srm` for every game | yes |
 | chip8 1.0 | CHIP-8 | `.ch8` | no | yes |
 

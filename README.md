@@ -3,7 +3,7 @@
 A working RetroArch-style frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS), the bare-metal
 custom OS for the Nintendo 3DS. Picture, menu, saves, save states, and
-PCM sound (NES included) work. Written in C against the
+PCM sound work. Written in C against the
 [Aurora C SDK](https://github.com/TeamAuroraOS/AuroraOS/tree/main/sdk).
 
 It is a libretro frontend in the shape of RetroArch: the same
@@ -27,7 +27,6 @@ the limits of this version is in the [wiki](wiki/Home.md).
 | Core | System | Extensions | Save states | SRAM |
 |------|--------|-----------|-------------|------|
 | [Peanut-GB](https://github.com/deltabeard/Peanut-GB) | Game Boy (DMG) | `.gb` `.dmg` | yes | yes (battery saves) |
-| [agnes](https://github.com/kgabis/agnes) | NES / Famicom | `.nes` | yes | — |
 | [SMS Plus GX](https://github.com/libretro/smsplus-gx) | Sega Master System | `.sms` | yes | yes (battery saves) |
 | | Sega Game Gear | `.gg` | yes | yes |
 | | Sega SG-1000 | `.sg` | yes | — |
@@ -95,9 +94,6 @@ A prebuilt `dist/RetroArch.bin` is checked in.
   speakers, so the cores' stereo is mixed down, resampled to the voice's
   32776 Hz with dynamic rate control (±0.5%), and played on one voice. A
   Volume setting (0–125%) sits in Settings.
-* **NES APU IRQs are not raised.** agnes handles CPU/PPU; a full integer 2A03
-  APU (pulses, triangle, noise, DMC reading the ROM) makes the sound, but its
-  frame and DMC IRQs are not delivered to the CPU.
 * The cores run on the 134 MHz ARM9. The scaler (all three scale modes) runs
   as an ARM11 job when the AuroraOS core is version 116 or later (`AUDIO_CMD_RUN11`);
   older cores fall back to the ARM9 scaler, which is slower. Show FPS prints
@@ -119,19 +115,17 @@ src/audio.c          mono PCM ring, resampler and rate control on CSND voice 6
 src/saves.c          paths, retroarch.cfg, SRAM, save states
 src/cores/core.h     the static-core descriptor (libretro signatures)
 src/cores/core_gb.c  Peanut-GB wrapper (plus its own serialize format)
-src/cores/core_nes.c agnes wrapper (direct PPU buffer -> RGB565 LUT)
 src/cores/core_sms.c SMS Plus GX wrapper (SMS, GG, SG-1000, ColecoVision)
 src/cores/core_chip8.c  a CHIP-8 interpreter written for this frontend
 compat/dirent.h      devkitARM-style <dirent.h> for plain newlib toolchains
-third_party/nes_apu/ the 2A03 APU used with agnes
-tests/host/          core, APU, scaler and audio tests (synthesised ROMs)
-third_party/         vendored libretro.h, Peanut-GB, agnes (all MIT)
+tests/host/          core, scaler and audio tests (synthesised ROMs)
+third_party/         vendored libretro.h and Peanut-GB (both MIT)
 ```
 
 ## License
 
 GPL-3.0 (like RetroArch and AuroraOS; an app built with the Aurora SDK links
 GPL code from the OS). Vendored components keep their own licenses:
-`libretro.h` (MIT), Peanut-GB (MIT), agnes (MIT), SMS Plus GX (GPL-2.0 or
+`libretro.h` (MIT), Peanut-GB (MIT), SMS Plus GX (GPL-2.0 or
 later; Charles MacDonald, Eke-Eke, gameblabla — see the headers in
 `third_party/smsplus/`).
