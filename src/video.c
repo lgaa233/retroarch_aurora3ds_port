@@ -1,73 +1,106 @@
 /* The video driver: the core's frame to the top screen.
  *
- * Aurora's off-screen framebuffer is 3 bytes per pixel, B G R, stored by
- * column and rotated: pixel (x, y) lives at ((x * 240) + (239 - y)) * 3. So
- * the blit walks destination columns; within one column consecutive y are
- * consecutive (descending) bytes, which keeps the inner loop tight. Scaling
- * is nearest-neighbour through two small lookup tables, rebuilt only when
- * the geometry, the scale mode or the pixel format changes. Everything is
- * integer: the ARM9 has no FPU.
- */
+ * The scaling itself is arm11/ra_blit.c. Where AuroraOS's ARM11 core takes
+ * AUDIO_CMD_RUN11 (core 116 and later) it runs there, at 268 MHz or more with
+ * write-allocating caches; the ARM9 waits for it. Writing a whole 400x240
+ * screen from the ARM9 costs about 11 ms of FCRAM stores (docs/gpu.md in
+ * AuroraOS measures 9 ms for 320x240), which is most of a frame, so the ARM9
+ * only does it when the ARM11 cannot. Everything is integer: the ARM9 has no
+ * FPU. */
 #include "retroarch.h"
 
 #include <aurora_app.h>
 #include <string.h>
 
+#include "blit11.h"
+#include "blit11_blob.h"
+
+#define RA_BLIT_FULL_EXPAND 0
+#include "ra_blit.c"
+
+/* The SDK runtime's (sdk/runtime/app_main.c), not in aurora_app.h. */
+extern bool app_core(void);
+extern uint32_t audio_version(void);
+extern void app_core_post(uint32_t cmd, uint32_t a0, uint32_t a1, uint32_t a2,
+                          uint32_t a3);
+
+#define AUDIO_CMD_RUN11 13u
+#define AUDIO_RUN11_VERSION 116u
+
+/* Rows of source per pass on the ARM9: 40 lines of a 4 KB data cache leave
+ * room for the framebuffer lines being written. The ARM11 has 16 KB. */
+#define BAND_ARM9 40u
+#define BAND_ARM11 0u
+
 static enum retro_pixel_format src_fmt = RETRO_PIXEL_FORMAT_0RGB1555;
 
 static int lut_w, lut_h, lut_mode; /* geometry the tables were built for */
-static uint16_t lut_sx[SCREEN_TOP_WIDTH];
-static uint16_t lut_sy[SCREEN_HEIGHT];
+static uint16_t lut_sx[SCREEN_TOP_WIDTH] __attribute__((aligned(32)));
+static uint16_t lut_sy[SCREEN_HEIGHT] __attribute__((aligned(32)));
 static int dst_x, dst_y, dst_w, dst_h;
 static bool borders_dirty = true;
 static int skip_count;
 static bool frame_drawn;
 static bool skip_next;
 
-/* One framebuffer column, packed BGR, so the copy into VRAM can be word
- * stores. A byte store to this RAM costs a full memory round trip; a word
- * moves four bytes for the same price. Aurora's own screen fill does this. */
-static uint8_t colbuf[SCREEN_HEIGHT * 3 + 4] __attribute__((aligned(4)));
+static int arm11_state; /* 0 not tried yet, 1 working, -1 not available */
+static uint32_t arm11_ticket;
+static uint32_t blit_us; /* the last frame's scaling time */
 
-static void store_run(volatile uint8_t *d, const uint8_t *s, unsigned n) {
-  if ((((uintptr_t)d ^ (uintptr_t)s) & 3u) != 0u) {
-    while (n--)
-      *d++ = *s++;
-    return;
-  }
-  while (n && ((uintptr_t)d & 3u)) {
-    *d++ = *s++;
-    n--;
-  }
-  {
-    volatile uint32_t *dw = (volatile uint32_t *)d;
-    const uint32_t *sw = (const uint32_t *)s;
-    unsigned words = n >> 2;
-    unsigned i;
-    for (i = 0; i < words; i++)
-      dw[i] = sw[i];
-    d += words << 2;
-    s += words << 2;
-    n &= 3u;
-  }
-  while (n--)
-    *d++ = *s++;
+/* Clean and invalidate the whole ARM9 data cache by index (4 KB, 4 ways,
+ * 32-byte lines), then drain the write buffer: the ARM11 then reads the frame
+ * from memory, and the ARM9 holds no stale copy of what it writes. */
+static void dcache_flush(void) {
+  uint32_t set, way;
+  for (set = 0; set < 0x400u; set += 0x20u)
+    for (way = 0; way < 4u; way++)
+      __asm__ volatile("mcr p15, 0, %0, c7, c14, 2" ::"r"((way << 30) | set)
+                       : "memory");
+  __asm__ volatile("mcr p15, 0, %0, c7, c10, 4" ::"r"(0) : "memory");
 }
 
-/* Four BGR pixels packed into three words, framebuffer order. */
-static void pack4(uint8_t *d, uint8_t b0, uint8_t g0, uint8_t r0, uint8_t b1,
-                  uint8_t g1, uint8_t r1, uint8_t b2, uint8_t g2, uint8_t r2,
-                  uint8_t b3, uint8_t g3, uint8_t r3) {
-  uint32_t w0 = (uint32_t)b0 | ((uint32_t)g0 << 8) | ((uint32_t)r0 << 16) |
-                ((uint32_t)b1 << 24);
-  uint32_t w1 = (uint32_t)g1 | ((uint32_t)r1 << 8) | ((uint32_t)b2 << 16) |
-                ((uint32_t)g2 << 24);
-  uint32_t w2 = (uint32_t)r2 | ((uint32_t)b3 << 8) | ((uint32_t)g3 << 16) |
-                ((uint32_t)r3 << 24);
-  ((uint32_t *)d)[0] = w0;
-  ((uint32_t *)d)[1] = w1;
-  ((uint32_t *)d)[2] = w2;
+static void inval_line(const volatile void *p) {
+  __asm__ volatile("mcr p15, 0, %0, c7, c6, 1" ::"r"(p) : "memory");
 }
+
+static bool arm11_ready(void) {
+  if (arm11_state)
+    return arm11_state > 0;
+  arm11_state = -1;
+  if (!app_core() || audio_version() < AUDIO_RUN11_VERSION ||
+      blit11_blob_size > RA_BLIT11_CODE_MAX)
+    return false;
+  memcpy((void *)(uintptr_t)RA_BLIT11_CODE, blit11_blob, blit11_blob_size);
+  arm11_state = 1;
+  return true;
+}
+
+/* False when the job did not run; the ARM9 then does it. */
+static bool arm11_blit(ra_blit_t *job) {
+  volatile ra_blit_t *p = (volatile ra_blit_t *)(uintptr_t)RA_BLIT11_PARAMS;
+  if (!arm11_ready())
+    return false;
+  job->ticket = ++arm11_ticket;
+  job->done = 0;
+  memcpy((void *)(uintptr_t)RA_BLIT11_PARAMS, job, sizeof(*job));
+  dcache_flush();
+  app_core_post(AUDIO_CMD_RUN11, RA_BLIT11_CODE, RA_BLIT11_PARAMS, 0, 0);
+  inval_line(&p->done);
+  if (p->done != job->ticket) {
+    /* Refused, or a core that does not know the command: not again. */
+    arm11_state = -1;
+    return false;
+  }
+  return true;
+}
+
+const char *ra_video_path(void) {
+  if (arm11_state > 0)
+    return "ARM11";
+  return arm11_state < 0 ? "ARM9" : "-";
+}
+
+uint32_t ra_video_blit_us(void) { return blit_us; }
 
 void ra_video_init(void) {
   lut_w = lut_h = 0;
@@ -126,16 +159,10 @@ static void build_luts(int w, int h, int mode) {
   borders_dirty = true;
 }
 
-static void paint_borders(void) {
-  gfx_clear(SCREEN_TOP, COLOR_BLACK);
-  borders_dirty = false;
-}
-
 void ra_video_submit(const void *data, unsigned width, unsigned height,
                      size_t pitch) {
-  uint8_t *fb;
-  const uint8_t *src = data;
-  int x;
+  ra_blit_t job;
+  uint64_t t0;
 
   frame_drawn = false;
   if (skip_next) {
@@ -157,112 +184,32 @@ void ra_video_submit(const void *data, unsigned width, unsigned height,
   if ((int)width != lut_w || (int)height != lut_h ||
       ra_config.scale != lut_mode)
     build_luts((int)width, (int)height, ra_config.scale);
-  if (borders_dirty)
-    paint_borders();
 
-  fb = gfx_framebuffer(SCREEN_TOP);
+  memset(&job, 0, sizeof(job));
+  job.src = (uintptr_t)data;
+  /* Waits for a present still reading the backbuffer. */
+  job.dst = (uintptr_t)gfx_framebuffer(SCREEN_TOP);
+  job.lut_sx = (uintptr_t)lut_sx;
+  job.lut_sy = (uintptr_t)lut_sy;
+  job.src_pitch = (uint32_t)pitch;
+  job.src_fmt = src_fmt == RETRO_PIXEL_FORMAT_RGB565     ? RA_BLIT_FMT_RGB565
+                : src_fmt == RETRO_PIXEL_FORMAT_XRGB8888 ? RA_BLIT_FMT_XRGB8888
+                                                         : RA_BLIT_FMT_0RGB1555;
+  job.dst_x = dst_x;
+  job.dst_y = dst_y;
+  job.dst_w = dst_w;
+  job.dst_h = dst_h;
+  job.clear = borders_dirty ? 1u : 0u;
 
-  if (src_fmt == RETRO_PIXEL_FORMAT_RGB565 && height <= SCREEN_HEIGHT) {
-    /* Cache every source row once, then scale by column — repeating the row
-     * walk for each output tile was the Fit/Stretch bottleneck. */
-    static uint16_t srows[SCREEN_HEIGHT][256];
-    static uint16_t tile[16][SCREEN_HEIGHT];
-    int row, x0;
-    if ((int)width > 256)
-      return;
-    for (row = 0; row < (int)height; row++) {
-      const uint16_t *srow = (const uint16_t *)(src + (size_t)row * pitch);
-      int x;
-      for (x = 0; x < (int)width; x++)
-        srows[row][x] = srow[x];
-    }
-    for (x0 = 0; x0 < dst_w; x0 += 16) {
-      int n = dst_w - x0;
-      int i, y;
-      if (n > 16)
-        n = 16;
-      for (i = 0; i < n; i++) {
-        int sx = lut_sx[x0 + i];
-        for (row = 0; row < (int)height; row++)
-          tile[i][row] = srows[row][sx];
-      }
-      for (i = 0; i < n; i++) {
-        int y_bottom = dst_y + dst_h - 1;
-        uint8_t *run = fb + (((dst_x + x0 + i) * SCREEN_HEIGHT) +
-                             (SCREEN_HEIGHT - 1 - y_bottom)) *
-                                3;
-        uint8_t *d = colbuf;
-        const uint16_t *col = tile[i];
-        /* Neighbouring screen columns often share one source column when
-         * the picture is enlarged. Pack that column once. */
-        if (i > 0 && lut_sx[x0 + i] == lut_sx[x0 + i - 1]) {
-          store_run(run, colbuf, (unsigned)dst_h * 3u);
-          continue;
-        }
-        y = dst_h - 1;
-        while (y >= 3) {
-          uint16_t p0 = col[lut_sy[y]];
-          uint16_t p1 = col[lut_sy[y - 1]];
-          uint16_t p2 = col[lut_sy[y - 2]];
-          uint16_t p3 = col[lut_sy[y - 3]];
-          pack4(d, (uint8_t)((p0 & 31) << 3), (uint8_t)((p0 >> 3) & 0xFC),
-                (uint8_t)((p0 >> 8) & 0xF8), (uint8_t)((p1 & 31) << 3),
-                (uint8_t)((p1 >> 3) & 0xFC), (uint8_t)((p1 >> 8) & 0xF8),
-                (uint8_t)((p2 & 31) << 3), (uint8_t)((p2 >> 3) & 0xFC),
-                (uint8_t)((p2 >> 8) & 0xF8), (uint8_t)((p3 & 31) << 3),
-                (uint8_t)((p3 >> 3) & 0xFC), (uint8_t)((p3 >> 8) & 0xF8));
-          d += 12;
-          y -= 4;
-        }
-        while (y >= 0) {
-          uint16_t p = col[lut_sy[y]];
-          *d++ = (uint8_t)((p & 31) << 3);
-          *d++ = (uint8_t)((p >> 3) & 0xFC);
-          *d++ = (uint8_t)((p >> 8) & 0xF8);
-          y--;
-        }
-        store_run(run, colbuf, (unsigned)dst_h * 3u);
-      }
-    }
-  } else {
-    for (x = 0; x < dst_w; x++) {
-      int y_bottom = dst_y + dst_h - 1;
-      uint8_t *run = fb + (((dst_x + x) * SCREEN_HEIGHT) +
-                           (SCREEN_HEIGHT - 1 - y_bottom)) *
-                              3;
-      uint8_t *d = colbuf;
-      int sx = lut_sx[x];
-      int y = dst_h - 1;
-      while (y >= 0) {
-        uint32_t c32 = 0;
-        uint16_t c16 = 0;
-        uint8_t b, g, rch;
-        int sy = lut_sy[y];
-        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888)
-          c32 = ((const uint32_t *)(src + sy * pitch))[sx];
-        else
-          c16 = ((const uint16_t *)(src + sy * pitch))[sx];
-        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
-          b = (uint8_t)c32;
-          g = (uint8_t)(c32 >> 8);
-          rch = (uint8_t)(c32 >> 16);
-        } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
-          b = (uint8_t)((c16 & 0x1F) << 3);
-          g = (uint8_t)(((c16 >> 5) & 0x1F) << 3);
-          rch = (uint8_t)(((c16 >> 10) & 0x1F) << 3);
-        } else {
-          b = (uint8_t)((c16 & 0x1F) << 3);
-          g = (uint8_t)((c16 >> 3) & 0xFC);
-          rch = (uint8_t)((c16 >> 8) & 0xF8);
-        }
-        *d++ = b;
-        *d++ = g;
-        *d++ = rch;
-        y--;
-      }
-      store_run(run, colbuf, (unsigned)dst_h * 3u);
-    }
+  t0 = sys_micros();
+  job.band_rows = BAND_ARM11;
+  if (!arm11_blit(&job)) {
+    job.band_rows = BAND_ARM9;
+    job.touch = 1;
+    ra_blit_run(&job);
   }
+  blit_us = (uint32_t)(sys_micros() - t0);
+  borders_dirty = false;
 
   gfx_mark(SCREEN_TOP);
   frame_drawn = true;

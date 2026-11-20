@@ -89,6 +89,10 @@ bool ra_video_frame_drawn(void);
 void ra_video_skip_next(void);
 /* True when this frame's picture will be dropped, so a core can skip drawing. */
 bool ra_video_will_skip(void);
+/* Which CPU scales the picture ("ARM11", "ARM9"), and how long the last frame
+ * took, in microseconds. */
+const char *ra_video_path(void);
+uint32_t ra_video_blit_us(void);
 
 /* --- input (input.c) ------------------------------------------------------ */
 
