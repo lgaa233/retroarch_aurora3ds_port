@@ -10,7 +10,7 @@
 #include <libretro.h>
 #include "cores/core.h"
 
-#define RA_VERSION "0.1.1"
+#define RA_VERSION "0.1.2"
 #define RA_NAME "RetroArch"
 
 #define RA_PATH_MAX 300
@@ -85,8 +85,10 @@ void ra_video_set_pixel_format(enum retro_pixel_format fmt);
 void ra_video_invalidate(void);
 /* True when the last submitted frame was actually drawn (not frameskipped). */
 bool ra_video_frame_drawn(void);
-/* Drop the next submitted frame (fast-forward runs the core blind). */
+/* Drop the next submitted frame (fast-forward and a slow previous frame). */
 void ra_video_skip_next(void);
+/* True when this frame's picture will be dropped, so a core can skip drawing. */
+bool ra_video_will_skip(void);
 
 /* --- input (input.c) ------------------------------------------------------ */
 

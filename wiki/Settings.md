@@ -10,7 +10,7 @@ move between rows.
 
 | Row on screen | What it does | Default |
 |---------------|--------------|---------|
-| Video Scale | `1x (centered)`, `Fit (keep aspect)`, or `Stretch (400x240)` | Fit |
+| Video Scale | `1x (centered)`, `Native (fast)`, or `Stretch (400x240)` | Native |
 | Frameskip | `0` through `4` | 0 |
 | Show FPS | `On` / `Off` | Off |
 | Fast Fwd (hold R) | `On` / `Off`. Hold R in game to use it | Off |
@@ -26,21 +26,17 @@ television pixel-aspect ratio.
 
 | Mode | `scale` in the cfg | Behavior |
 |------|--------------------|----------|
-| 1x (centered) | `0` | one source pixel per screen pixel, centered. Every core in 0.1.1 fits in 400×240, so this is the native picture. A frame larger than the screen on either axis would be scaled down to that edge |
-| Fit (keep aspect) | `1` | the largest size that still fits in 400×240. Integer division can be a pixel off a perfect ratio |
-| Stretch (400x240) | `2` | always the full top screen, so the picture is stretched |
+| 1x (centered) | `0` | one source pixel per screen pixel, centered. A frame larger than the screen on either axis is scaled down to that edge |
+| Native (fast) | `1` | the largest whole-number multiple that still fits. Game Boy, Game Gear, NES, and Master System stay at 1x, because 2x does not fit. CHIP-8 (64×32) is drawn at 6x |
+| Stretch (400x240) | `2` | always the full top screen. This paints many more pixels and is the slow mode |
 
-Examples of Fit:
+Native is the default because stretching the picture was enough to push games under 60 fps, which slowed the sound with them.
 
-* Game Boy and the usual Game Gear picture are 160×144, which Fit draws
-  at 266×240.
-* A 256×240 NES picture already matches the screen height, so 1x and Fit
-  are the same 256×240 image. Stretch widens it to 400×240.
-* A 256×192 Master System picture Fits at 320×240.
-* CHIP-8 is 64×32. 1x is a small block in the center. Fit is 400×200.
+* Game Boy, Game Gear, NES, and Master System stay at their native size
+  in both 1x and Native. Stretch is what widens them to 400×240, and it
+  is the slow one.
+* CHIP-8 is 64×32. 1x is a small block. Native draws it at 384×192.
 
-Stretch fills more pixels, so it costs more blit time than 1x. If a game
-is missing frames, 1x or Fit plus a frameskip is the lighter combination.
 See [Limitations](Limitations.md).
 
 ## Frameskip

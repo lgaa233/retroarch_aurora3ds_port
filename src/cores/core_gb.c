@@ -9,7 +9,7 @@
  * pointers inside are re-pointed at this build's callbacks on restore, so a
  * state is only valid for the same ROM (the header records its size).
  */
-#include "core.h"
+#include "retroarch.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -22,6 +22,7 @@ void audio_write(uint16_t addr, uint8_t val);
 
 #define ENABLE_SOUND 1
 #define ENABLE_LCD 1
+#define PEANUT_GB_HIGH_LCD_ACCURACY 0
 #include "peanut_gb.h"
 
 static retro_environment_t env_cb;
@@ -93,6 +94,8 @@ static void lcd_draw_line(struct gb_s *g, const uint8_t *pixels,
   uint16_t *dst = fb[line];
   int x;
   (void)g;
+  if (ra_video_will_skip())
+    return;
   for (x = 0; x < LCD_WIDTH; x++) {
     uint8_t p = pixels[x];
     dst[x] = palette[(p & LCD_PALETTE_ALL) >> 4][p & LCD_COLOUR];

@@ -10,7 +10,7 @@
  * ColecoVision games need the console's BIOS as `BIOS.col` in the system
  * directory (the frontend points it at SD:/Aurora/ROMs).
  */
-#include "core.h"
+#include "retroarch.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -257,6 +257,9 @@ static bool sms_load_game(const struct retro_game_info *game) {
   bitmap.viewport.x = 0;
   bitmap.viewport.y = 0;
 
+  /* FM synthesis is too much for the ARM9 on top of the PSG. */
+  sms.use_fm = 0;
+  option.fm = 0;
   system_poweron();
 
   out_width = bitmap.viewport.w;
@@ -334,7 +337,7 @@ static void sms_core_run(void) {
 #undef PRESSED
   }
 
-  system_frame(0);
+  system_frame(ra_video_will_skip() ? 1u : 0u);
 
   xoffset = bitmap.viewport.x;
   out_width = bitmap.viewport.w;

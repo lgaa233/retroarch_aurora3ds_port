@@ -396,7 +396,7 @@ enum {
 static ra_menu_action_t tick_settings(void) {
   uint32_t down = menu_keys();
   int i;
-  static const char *scale_names[] = {"1x (centered)", "Fit (keep aspect)",
+  static const char *scale_names[] = {"1x (centered)", "Native (fast)",
                                       "Stretch (400x240)"};
 
   if (down & KEY_UP) sel[SCR_SETTINGS]--;

@@ -6,7 +6,7 @@
  * to RGB565 with one table lookup per pixel instead of 61k function calls
  * per frame, which matters on the 134 MHz ARM9.
  */
-#include "core.h"
+#include "retroarch.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -144,10 +144,12 @@ static void nes_run(void) {
   agnes_next_frame(agn);
 
   /* Palette indices to RGB565 through the lookup table. */
-  src = agn->ppu.screen_buffer;
-  dst = &fb[0][0];
-  for (i = 0; i < AGNES_SCREEN_WIDTH * AGNES_SCREEN_HEIGHT; i++)
-    dst[i] = color_lut[src[i] & 0x3F];
+  if (!ra_video_will_skip()) {
+    src = agn->ppu.screen_buffer;
+    dst = &fb[0][0];
+    for (i = 0; i < AGNES_SCREEN_WIDTH * AGNES_SCREEN_HEIGHT; i++)
+      dst[i] = color_lut[src[i] & 0x3F];
+  }
 
   if (video_cb)
     video_cb(fb, AGNES_SCREEN_WIDTH, AGNES_SCREEN_HEIGHT,

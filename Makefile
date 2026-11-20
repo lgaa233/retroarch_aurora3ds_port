@@ -14,14 +14,15 @@ AURORA_COMMIT ?= 4506e82535d69f94a9bd1fd4708f26ada61cec51
 
 OUT      := RetroArch.bin
 AURCC    := $(AURORA_DIR)/sdk/aurcc.py
-INCLUDES := -I $(CURDIR)/third_party/libretro \
+INCLUDES := -I $(CURDIR)/src \
+            -I $(CURDIR)/third_party/libretro \
             -I $(CURDIR)/third_party/peanut_gb \
             -I $(CURDIR)/third_party/agnes \
             -I $(CURDIR)/third_party/smsplus \
             -I $(CURDIR)/third_party/minigb_apu
 # The same flags parse for gcc and for aurcc.py's -D option.
 DEFINES  := -DNOZIP_SUPPORT -DMAXIM_PSG -DUSE_Z80 \
-            -DMINIGB_APU_AUDIO_FORMAT_S16SYS
+            -DMINIGB_APU_AUDIO_FORMAT_S16SYS -DAUDIO_SAMPLE_RATE=11025
 
 SMSPLUS_SRC := $(wildcard third_party/smsplus/*.c)
 

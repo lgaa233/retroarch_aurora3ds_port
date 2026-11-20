@@ -175,7 +175,23 @@ int main(void) {
     }
 
     ra_input_update();
-    ra_content.core->run();
+    {
+      /* A frame that missed 60 Hz skips the next picture, up to two in a
+       * row, so the ARM9 can spend the time on the game instead of the blit. */
+      static uint32_t last_ms;
+      static int skipped;
+      if (last_ms > 16 && skipped < 2) {
+        ra_video_skip_next();
+        skipped++;
+      } else {
+        skipped = 0;
+      }
+      {
+        uint32_t t0 = sys_millis();
+        ra_content.core->run();
+        last_ms = sys_millis() - t0;
+      }
+    }
 
     if (ra_config.fast_forward && (hid_keys_held() & KEY_R)) {
       int extra;

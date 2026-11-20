@@ -39,6 +39,8 @@ bool ra_video_frame_drawn(void) { return frame_drawn; }
 
 void ra_video_skip_next(void) { skip_next = true; }
 
+bool ra_video_will_skip(void) { return skip_next; }
+
 static void build_luts(int w, int h, int mode) {
   int x, y;
 
@@ -47,17 +49,17 @@ static void build_luts(int w, int h, int mode) {
     dst_w = SCREEN_TOP_WIDTH;
     dst_h = SCREEN_HEIGHT;
     break;
-  case RA_SCALE_FIT:
-    /* The larger size that still fits: compare 400/w with 240/h without
-     * floats by cross-multiplying. */
-    if (SCREEN_TOP_WIDTH * h <= SCREEN_HEIGHT * w) {
-      dst_w = SCREEN_TOP_WIDTH;
-      dst_h = h * SCREEN_TOP_WIDTH / w;
-    } else {
-      dst_h = SCREEN_HEIGHT;
-      dst_w = w * SCREEN_HEIGHT / h;
-    }
+  case RA_SCALE_FIT: {
+    /* Largest integer multiple that fits. Fractional upscaling painted
+     * several times more pixels than the core produced and pushed games
+     * under 60 fps, which slowed the sound with them. */
+    int s = 1;
+    while ((s + 1) * w <= SCREEN_TOP_WIDTH && (s + 1) * h <= SCREEN_HEIGHT)
+      s++;
+    dst_w = w * s;
+    dst_h = h * s;
     break;
+  }
   case RA_SCALE_1X:
   default:
     dst_w = w < SCREEN_TOP_WIDTH ? w : SCREEN_TOP_WIDTH;

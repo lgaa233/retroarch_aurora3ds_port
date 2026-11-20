@@ -18,6 +18,9 @@
 
 static int failures;
 
+/* The device build decides this in video.c. Host tests always draw. */
+bool ra_video_will_skip(void) { return false; }
+
 #define CHECK(cond, what)                                                     \
   do {                                                                        \
     if (cond) {                                                               \
