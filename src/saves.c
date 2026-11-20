@@ -15,6 +15,7 @@ ra_config_t ra_config = {
   .frameskip = 0,
   .show_fps = false,
   .fast_forward = false,
+  .volume = 8,
   .last_dir = "",
 };
 
@@ -46,10 +47,11 @@ void ra_config_save(void) {
                    "frameskip = %d\n"
                    "show_fps = %d\n"
                    "fast_forward = %d\n"
+                   "volume = %d\n"
                    "last_dir = %s\n",
                    ra_config.scale, ra_config.frameskip,
                    ra_config.show_fps ? 1 : 0, ra_config.fast_forward ? 1 : 0,
-                   ra_config.last_dir);
+                   ra_config.volume, ra_config.last_dir);
   if (n > 0)
     fs_write_file(cfg_path, buf, (size_t)n);
 }
@@ -87,6 +89,8 @@ void ra_config_load(void) {
         ra_config.show_fps = atoi(val) != 0;
       else if (!strcmp(key, "fast_forward"))
         ra_config.fast_forward = atoi(val) != 0;
+      else if (!strcmp(key, "volume"))
+        ra_config.volume = atoi(val);
       else if (!strcmp(key, "last_dir")) {
         strncpy(ra_config.last_dir, val, sizeof(ra_config.last_dir) - 1);
         ra_config.last_dir[sizeof(ra_config.last_dir) - 1] = '\0';
@@ -99,6 +103,8 @@ void ra_config_load(void) {
     ra_config.scale = RA_SCALE_FIT;
   if (ra_config.frameskip < 0 || ra_config.frameskip > 4)
     ra_config.frameskip = 0;
+  if (ra_config.volume < 0 || ra_config.volume > 10)
+    ra_config.volume = 8;
 }
 
 /* --- SRAM ------------------------------------------------------------------ */
