@@ -70,13 +70,15 @@ RetroArch menu stops the voices until you resume. Details are on
 
 ## The game is slow or stuttering
 
-The whole emulator runs on the ARM9 at 134 MHz. There is no FPU and no
-second core available to an Aurora app.
+The cores run on the ARM9 at 134 MHz, with no FPU. The scaling runs on the
+ARM11 only when the AuroraOS core is version 116 or later.
 
+* Turn on **Show FPS**. If it says `ARM9` instead of `ARM11`, update
+  AuroraOS: the ARM9 fallback scaler costs much more of each frame.
 * Set **Frameskip** to 1–4. The game logic still advances; fewer frames
   are drawn. Frameskip 1 draws every other frame.
-* Prefer **1x** or **Fit** over **Stretch**. Stretch always paints
-  400×240.
+* With the ARM9 scaler, prefer **1x** or **Fit** over **Stretch**.
+  Stretch always paints 400×240.
 * **Show FPS** counts main-loop frames over the last second. It does not
   count the extra fast-forward runs.
 * Some Master System titles are marked FM-capable. That synthesis runs
@@ -128,8 +130,9 @@ replace it with the values from the session.
 
 ## What this version does
 
-Version 0.1.6 runs on the console. Picture, the menu, saves, save
+Version 0.1.7 runs on the console. Picture, the menu, saves, save
 states, and PCM sound work on all built-in cores, including NES.
 `make test` also runs the cores on a PC with synthetic ROMs.
 [Limitations](Limitations.md) lists the boundaries that are still real,
-such as incomplete NES DMC sample playback and no New 3DS extra buttons.
+such as mono sound, NES APU IRQs that do not reach the CPU, and no New 3DS
+extra buttons.

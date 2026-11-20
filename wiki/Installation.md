@@ -1,7 +1,10 @@
 # Installation
 
-RetroArch for AuroraOS 0.1.6 is an `AURC` container. It needs **AuroraOS
+RetroArch for AuroraOS 0.1.7 is an `AURC` container. It needs **AuroraOS
 Beta 6 v0.1.5 or later**. Older AuroraOS builds cannot launch this file.
+An AuroraOS whose ARM11 core is version 116 or later also runs the
+picture scaler on the ARM11, which keeps Fit and Stretch at full speed;
+on older cores the ARM9 scales and those modes are slower.
 
 You also need a Nintendo 3DS that already runs Luma3DS, and an SD card you
 can write from a PC. ROMs and the ColecoVision BIOS must be dumps you made

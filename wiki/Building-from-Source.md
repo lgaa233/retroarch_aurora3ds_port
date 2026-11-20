@@ -40,8 +40,12 @@ What that does:
 1. If `third_party/AuroraOS/sdk/aurcc.py` is missing, `git clone` AuroraOS
    into `third_party/AuroraOS` and check out the pinned commit
    `4506e82535d69f94a9bd1fd4708f26ada61cec51`.
-2. Run `aurcc.py build` on `src/` and `third_party/smsplus/`.
-3. Write `RetroArch.bin` in the repository root.
+2. Build the ARM11 scaler job from `arm11/` with `arm-none-eabi-gcc`
+   (`build/blit11.elf`, then `build/blit11.bin`), and turn it into
+   `build/blit11_blob.h` with `tools/bin2h.py`.
+3. Run `aurcc.py build` on `src/`, `third_party/smsplus/`,
+   `third_party/minigb_apu/` and `third_party/nes_apu/`.
+4. Write `RetroArch.bin` in the repository root.
 
 The pinned commit is the AuroraOS revision this app is known to build
 against. Override the variables if you are deliberately testing another
@@ -61,7 +65,7 @@ Useful defines compiled in (the same flags for the host tests):
 | `USE_Z80` | SMS Plus Z80 |
 
 The app icon is `src/RetroArch.icon` (a 32×32 picture). Version
-`0.1.6` is `RA_VERSION` in `src/retroarch.h`.
+`0.1.7` is `RA_VERSION` in `src/retroarch.h`.
 
 ## Host tests
 
@@ -69,10 +73,17 @@ The app icon is `src/RetroArch.icon` (a 32×32 picture). Version
 make test
 ```
 
-This compiles `build/test_cores` with the host compiler and runs it. The
-cores do not call the Aurora SDK, so the tests run on the PC. They use
-synthetic Game Boy and NES ROMs, not files from a cartridge. A failure
-here is a core problem, not an SD-card problem.
+This compiles and runs, with the host compiler:
+
+* `build/test_cores`: the cores and the NES APU, with synthetic Game Boy
+  and NES ROMs, not files from a cartridge
+* `build/test_blit` and `build/test_blit9`: the scaler, in its ARM11 and
+  ARM9 builds, against a reference for every scale mode
+* `build/test_audio`: `src/audio.c` against a model of the CSND voice,
+  with frames paced by the screen and some arriving late
+
+None of them call the real Aurora SDK, so they run on the PC. A failure
+here is a code problem, not an SD-card problem.
 
 ## Clean
 
@@ -92,7 +103,8 @@ src/menu.c              menu, file browser, settings, information
 src/video.c             blit to Aurora's 24-bit top screen, scale, frameskip
 src/input.c             3DS buttons to RetroPad port 0
 src/environ.c           libretro environment
-src/audio.c             stereo PCM played on CSND voices
+src/audio.c             mono PCM, resampler and rate control, CSND voice 6
+arm11/                  the scaler, built for the ARM11 job and the ARM9
 src/saves.c             paths, retroarch.cfg, SRAM, save states
 src/retroarch.h         RA_VERSION, config struct, shared declarations
 src/cores/core.h        static-core descriptor
@@ -102,7 +114,8 @@ src/cores/core_nes.c    agnes
 src/cores/core_sms.c    SMS Plus GX, including BIOS.col
 src/cores/core_chip8.c  CHIP-8 interpreter
 compat/dirent.h         dirent for a plain newlib toolchain
-tests/host/             host core tests
+tests/host/             host core, APU, scaler and audio tests
+third_party/nes_apu/    the 2A03 APU used with agnes
 third_party/libretro/   libretro.h (MIT)
 third_party/peanut_gb/  Peanut-GB (MIT)
 third_party/agnes/      agnes (MIT)

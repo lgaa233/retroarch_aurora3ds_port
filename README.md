@@ -3,7 +3,7 @@
 A working RetroArch-style frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS), the bare-metal
 custom OS for the Nintendo 3DS. Picture, menu, saves, save states, and
-stereo PCM work. Written in C against the
+PCM sound (NES included) work. Written in C against the
 [Aurora C SDK](https://github.com/TeamAuroraOS/AuroraOS/tree/main/sdk).
 
 It is a libretro frontend in the shape of RetroArch: the same
@@ -70,8 +70,8 @@ L=4, START=# and SELECT=\*. The CHIP-8 4x4 keypad maps D-pad to 2/4/6/8,
 A=5, B=6, X=1, Y=3, L=A, R=B, START=C, SELECT=D.
 
 Menu: Resume, Restart, Save/Load State (10 slots), Load Content, Settings
-(video scale 1x / fit / stretch, frameskip 0–4, FPS counter, fast-forward),
-Information.
+(video scale 1x / fit / stretch, frameskip 0–4, FPS counter, fast-forward,
+volume), Information.
 
 ## Building
 
@@ -81,18 +81,27 @@ SDK build with the latter), `python3` and `git`:
 
 ```
 make          # clones AuroraOS (pinned commit) and builds RetroArch.bin
-make test     # host-side core tests with synthetic ROMs (plain gcc)
+make test     # host-side core, scaler and audio tests (plain gcc)
 ```
+
+`make` also builds the ARM11 scaler job (`arm11/`) with `arm-none-eabi-gcc`
+and embeds it in the app.
 
 A prebuilt `dist/RetroArch.bin` is checked in.
 
 ## Limitations
 
-* **NES audio is simplified.** agnes handles CPU/PPU; a lightweight integer 2A03
-  APU adds PCM (DMC sample playback from ROM is not fully emulated). All cores
-  stream stereo PCM through CSND voices, the same path NovaLauncher uses.
-* Speed depends on the game: the whole emulator runs on the 134 MHz ARM9.
-  Frameskip and the stretch-free scale modes help.
+* **Sound is mono.** Aurora's CSND voices play the same volume on both
+  speakers, so the cores' stereo is mixed down, resampled to the voice's
+  32776 Hz with dynamic rate control (±0.5%), and played on one voice. A
+  Volume setting (0–125%) sits in Settings.
+* **NES APU IRQs are not raised.** agnes handles CPU/PPU; a full integer 2A03
+  APU (pulses, triangle, noise, DMC reading the ROM) makes the sound, but its
+  frame and DMC IRQs are not delivered to the CPU.
+* The cores run on the 134 MHz ARM9. The scaler (all three scale modes) runs
+  as an ARM11 job when the AuroraOS core is version 116 or later (`AUDIO_CMD_RUN11`);
+  older cores fall back to the ARM9 scaler, which is slower. Show FPS prints
+  which one is in use and its time per frame.
 * Save states are tied to the same ROM and the same RetroArch build.
 * The New 3DS extra buttons (ZL/ZR, C-stick) are not readable from the SDK.
 * One content at a time, RetroPad port 0 only, no cheats/shaders/netplay.
@@ -102,10 +111,11 @@ A prebuilt `dist/RetroArch.bin` is checked in.
 ```
 src/main.c           entry point, the run loop, content loading, the OSD
 src/menu.c           RGUI-style menu: browser, settings, information
-src/video.c          blitter to Aurora's rotated 24-bit framebuffer + scaling
+src/video.c          frame to Aurora's rotated 24-bit framebuffer (ARM11 or ARM9)
+arm11/               the integer scaler, shared by the ARM11 job and the ARM9
 src/input.c          3DS buttons -> RetroPad
 src/environ.c        RETRO_ENVIRONMENT answers and the video callback
-src/audio.c          stereo PCM rings played on CSND voices 6 and 7
+src/audio.c          mono PCM ring, resampler and rate control on CSND voice 6
 src/saves.c          paths, retroarch.cfg, SRAM, save states
 src/cores/core.h     the static-core descriptor (libretro signatures)
 src/cores/core_gb.c  Peanut-GB wrapper (plus its own serialize format)
@@ -113,7 +123,8 @@ src/cores/core_nes.c agnes wrapper (direct PPU buffer -> RGB565 LUT)
 src/cores/core_sms.c SMS Plus GX wrapper (SMS, GG, SG-1000, ColecoVision)
 src/cores/core_chip8.c  a CHIP-8 interpreter written for this frontend
 compat/dirent.h      devkitARM-style <dirent.h> for plain newlib toolchains
-tests/host/          core smoke tests with synthesised GB/NES ROMs
+third_party/nes_apu/ the 2A03 APU used with agnes
+tests/host/          core, APU, scaler and audio tests (synthesised ROMs)
 third_party/         vendored libretro.h, Peanut-GB, agnes (all MIT)
 ```
 

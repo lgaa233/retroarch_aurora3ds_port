@@ -2,7 +2,7 @@
 
 RetroArch for AuroraOS is an unofficial libretro frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS) on the Nintendo 3DS.
-Version **0.1.6** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
+Version **0.1.7** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
 3DS, New 3DS XL, and New 2DS XL). Aurora apps run on the ARM9, and that CPU
 is the same chip across the family: ARM9 at 134 MHz, with no floating-point
 unit.
@@ -15,10 +15,12 @@ saves, save states, and a `retroarch.cfg`, and links its cores into the
 binary.
 
 The picture is on the top screen. The bottom screen is status and help.
-Picture, menu, SRAM saves, save states, and stereo PCM all work on the
-console. Game Boy, Master System, Game Gear, SG-1000, ColecoVision, and
-CHIP-8, and NES have PCM sound (NES uses agnes for gameplay plus an
-integer 2A03 APU).
+Picture, menu, SRAM saves, save states, and PCM sound all work on the
+console. Game Boy, Master System, Game Gear, SG-1000, ColecoVision,
+CHIP-8, and NES have sound (NES uses agnes for gameplay plus a full
+integer 2A03 APU, DMC included). Sound is mono, resampled with dynamic
+rate control, with a volume setting. With AuroraOS core 116 or later the
+picture is scaled on the ARM11, which keeps Fit and Stretch at full speed.
 
 Source code and the prebuilt `dist/RetroArch.bin` live at
 <https://github.com/lgaa233/retroarch_aurora3ds_port>. These pages are the
@@ -65,7 +67,7 @@ screen prints the save and state paths the running app is actually using.
 * [Controls](Controls.md) — buttons, menu, per-system keypad maps
 * [Supported Systems](Supported-Systems.md) — what each core actually runs
 * [Saves and Save States](Saves-and-Save-States.md) — `.srm` files and slots 0–9
-* [Settings](Settings.md) — video, frameskip, FPS, fast-forward, `retroarch.cfg`
+* [Settings](Settings.md) — video, frameskip, FPS, fast-forward, volume, `retroarch.cfg`
 * [Building from Source](Building-from-Source.md) — toolchain, `make`, `make test`
 * [Troubleshooting](Troubleshooting.md) — install, BIOS, slow games, silence
 * [Limitations](Limitations.md) — what this version does and does not do

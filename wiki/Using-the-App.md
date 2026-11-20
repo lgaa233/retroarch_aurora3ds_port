@@ -1,7 +1,7 @@
 # Using the App
 
 Boot AuroraOS, then open **RetroArch** from the Aurora Home Menu. The
-title bar shows `RetroArch 0.1.6`.
+title bar shows `RetroArch 0.1.7`.
 
 The app opens straight into the menu, with the cursor on **Load Content**,
 because nothing is running yet. After a game loads, the top screen is the
@@ -12,7 +12,7 @@ game and the bottom screen is a status page.
 **While a game is running**
 
 * Top screen (400×240): the game, nearest-neighbor scaled. An optional FPS
-  counter sits in the top-left. Short messages (the on-screen display)
+  counter (with the scaler in use and its time) sits in the top-left. Short messages (the on-screen display)
   sit on a black bar along the bottom for about two seconds.
 * Bottom screen: the version, the ROM name, the core name and version,
   "Touch the screen for the menu", and "HOME quits to the Home Menu". If
@@ -39,8 +39,8 @@ opened the menu is not also sent to the game.
 | Load State | a game is running | loads the current slot and returns to the game, or stays in the menu if it failed |
 | State Slot | a game is running | slots **0–9**. Left / Right change it. A moves to the next slot |
 | Load Content | always | opens the file browser |
-| Settings | always | video scale, frameskip, FPS, fast-forward |
-| Information | always | version, cores, console, paths |
+| Settings | always | video scale, frameskip, FPS, fast-forward, volume |
+| Information | always | version, cores, console, scaler, audio, paths |
 | Quit RetroArch | always | leaves the app and returns to Aurora |
 
 Resume, Restart, Save State, Load State, and State Slot are dimmed until a
@@ -77,12 +77,13 @@ game's SRAM, if it has any.
 
 The Information screen lists:
 
-* `RetroArch 0.1.6 for AuroraOS` and that the cores are statically linked
+* `RetroArch 0.1.7 for AuroraOS` and that the cores are statically linked
 * each core's name, version, and extensions (Peanut-GB `head`, agnes
   `0.2.0`, SMS Plus GX `head`, chip8 `1.0`)
 * `New 3DS / New 2DS` or `Old 3DS / 2DS`
-* `CPU: ARM9 @ 134 MHz (all models)`
-* `Audio: stereo PCM (NES has none)`
+* `Cores run on the ARM9 (all models)`
+* `Scaler: ARM11` (or `ARM9`) and the last frame's scaling time
+* `Audio: 32.8 kHz PCM` and how many underruns (late frames) there were
 * the live save directory and state directory
 
 A or B returns to the main menu.

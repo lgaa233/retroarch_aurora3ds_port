@@ -1,6 +1,6 @@
 # Limitations
 
-This is RetroArch **0.1.6** for AuroraOS: a working libretro frontend with
+This is RetroArch **0.1.7** for AuroraOS: a working libretro frontend with
 four statically linked cores. Picture, controls, the menu, SRAM saves,
 save states, and PCM sound work on the console. The list below is what
 this version does, not a list of broken features.
@@ -20,22 +20,34 @@ into `RetroArch.bin`. You cannot drop in a `.so` core.
 
 ## Audio
 
-Game Boy, the Sega 8-bit cores and CHIP-8 play 16-bit stereo PCM. The
-frontend upsamples everything to 32768 Hz with a linear interpolator and a
-lowpass, then plays it quieter than full scale, so square waves are not
-a buzz. Samples loop on CSND voices 6 and 7. Fast-forward drops extra
-batches so the sound does not fall behind.
+Sound is **mono**. Aurora's CSND voices play at the same volume on both
+speakers, so the cores' stereo is mixed down and played on one looping
+voice (6). The frontend resamples each core's rate to the voice's real
+32776 Hz with a linear interpolator, a DC blocker and a ~10 kHz lowpass.
+Frames are paced by the screen (~59.8 Hz), so a core that runs at 60.1 Hz
+(NES) plays about 0.5% lower, as in RetroArch. Dynamic rate control
+(±0.5%) keeps about 20 ms of sound queued. A frame that comes late fades
+to silence and fades back in instead of replaying stale sound; the
+Information screen counts those underruns. Fast-forward drops extra
+batches so the sound does not fall behind. **Volume** in Settings goes
+from 0 to 125%.
 
-NES uses agnes for gameplay plus a lightweight 2A03 APU for PCM sound.
-DMC (sample) playback is incomplete, so a few titles may lack drums or
-speech effects.
-Master System and Game Gear audio is the PSG, generated at 22050 Hz and
-played at 32768 Hz. FM stays off so a frame still fits.
+NES uses agnes for gameplay plus a full integer 2A03 APU: both pulses with
+sweep and envelope, triangle, noise, and DMC samples read from the ROM.
+The APU's frame and DMC IRQ flags show in `$4015`, but the IRQs are not
+raised on the CPU, so a game that times itself with them can misbehave.
+Master System and Game Gear audio is the PSG, generated at 22050 Hz.
+FM stays off so a frame still fits.
 
 ## Speed
 
-How fast a game runs depends on the game. Everything is on one 134 MHz
-integer core, and the blit is nearest-neighbor into a 24-bit framebuffer.
+How fast a game runs depends on the game. The cores run on the 134 MHz
+ARM9. The nearest-neighbor scale into the 24-bit framebuffer runs as a job
+on the ARM11 when the AuroraOS core is version 116 or later
+(`AUDIO_CMD_RUN11`), which takes most of a frame's work off the ARM9. With
+an older core it falls back to the ARM9, and Fit and Stretch are slower.
+**Show FPS** prints which one is in use (`ARM11` or `ARM9`) and its time
+per frame.
 
 * **Frameskip** 0–4 draws 1 frame out of (frameskip + 1). Skipped frames
   are still emulated.
@@ -80,8 +92,8 @@ integer core, and the blit is nearest-neighbor into a 24-bit framebuffer.
 
 ## Menu scope
 
-The menu is Resume, Restart, save states, Load Content, four settings
-(scale, frameskip, FPS, fast-forward), Information, and Quit. There is
+The menu is Resume, Restart, save states, Load Content, five settings
+(scale, frameskip, FPS, fast-forward, volume), Information, and Quit. There is
 no per-core option screen, no button remapper, and no region switch.
 Master System region and PAL/NTSC follow the ROM header and the SMS Plus
 game database.
