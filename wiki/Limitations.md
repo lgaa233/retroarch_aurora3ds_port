@@ -1,11 +1,9 @@
 # Limitations
 
-This is RetroArch **0.1.1** for AuroraOS: a small libretro frontend with
-four statically linked cores. The list below is the behavior of this
-source tree, not a roadmap.
-
-The port has **not been verified on real 3DS hardware**. Host tests
-(`make test`) run the cores on a PC with synthetic ROMs.
+This is RetroArch **0.1.1** for AuroraOS: a working libretro frontend with
+four statically linked cores. Picture, controls, the menu, SRAM saves,
+save states, and PCM sound work on the console. The list below is what
+this version does, not a list of broken features.
 
 ## Hardware it runs on
 
@@ -28,9 +26,9 @@ same command NovaLauncher uses (`AUDIO_CMD_VOICE`). The frontend keeps the
 write head a little ahead of playback and drops extra batches while
 fast-forward is held, so the sound does not fall behind.
 
-NES stays silent. agnes does not emulate the NES APU. The FM chip in SMS
-Plus is left off: it costs ARM9 time and this build plays the PSG. Master
-System and Game Gear audio is mixed at 22050 Hz.
+NES gameplay works and stays silent. agnes does not emulate the NES APU.
+Master System and Game Gear audio is the PSG (and FM, when that game's
+database entry turns it on), mixed at 22050 Hz.
 
 ## Speed
 

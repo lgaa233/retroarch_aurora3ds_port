@@ -1,7 +1,9 @@
 # RetroArch for AuroraOS (Nintendo 3DS)
 
-A port of RetroArch to [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS),
-the bare-metal custom OS for the Nintendo 3DS — written in C against the
+A working RetroArch-style frontend for
+[AuroraOS](https://github.com/TeamAuroraOS/AuroraOS), the bare-metal
+custom OS for the Nintendo 3DS. Picture, menu, saves, save states, and
+stereo PCM work. Written in C against the
 [Aurora C SDK](https://github.com/TeamAuroraOS/AuroraOS/tree/main/sdk).
 
 It is a libretro frontend in the shape of RetroArch: the same

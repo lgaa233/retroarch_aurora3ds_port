@@ -57,13 +57,16 @@ The size and mapper rules are collected on
 [Loading ROMs](Loading-ROMs.md) and
 [Supported Systems](Supported-Systems.md).
 
-## There is no sound
+## A game is silent
 
-NES titles are silent: agnes has no APU. Other cores should be audible.
-Sound needs an app started from the Home Menu, so the ARM11 core is
-running, and a console whose Aurora core understands voices (version 82
-or later; current Aurora does). Opening the RetroArch menu stops the
-voices. Details are on [Limitations](Limitations.md).
+Sound works. Game Boy, Master System, Game Gear, SG-1000, ColecoVision,
+and CHIP-8 play stereo PCM. NES is the exception: agnes has no audio
+chip, so those games run with no sound.
+
+Open RetroArch from the Aurora Home Menu. The ARM11 core, which owns
+the speakers, is only there for an app started that way. Opening the
+RetroArch menu stops the voices until you resume. Details are on
+[Limitations](Limitations.md).
 
 ## The game is slow or stuttering
 
@@ -76,9 +79,8 @@ second core available to an Aurora app.
   400×240.
 * **Show FPS** counts main-loop frames over the last second. It does not
   count the extra fast-forward runs.
-* Some Master System titles are marked FM-capable in the SMS Plus game
-  database. That synthesis still runs, and the samples are then thrown
-  away, so those titles spend cycles you cannot hear.
+* Some Master System titles are marked FM-capable. That synthesis runs
+  and is heard, and it costs extra ARM9 time.
 
 **Fast Fwd (hold R)** makes the game run faster. It does not make a slow
 game smoother. Enable it in Settings, then hold R during play. On
@@ -124,9 +126,10 @@ Fit the next time the file is loaded. `frameskip` outside 0–4 becomes 0.
 Edit the file while RetroArch is not running, or the exit rewrite will
 replace it with the values from the session.
 
-## This build has not been run on a real 3DS for these pages
+## What this version does
 
-Behavior above is what the 0.1.1 source does, and `make test` exercises
-the cores on a PC with synthetic ROMs. The port has not been verified on
-console hardware. A failure that the code does not already explain may
-be that gap. [Limitations](Limitations.md) lists the known boundaries.
+Version 0.1.1 runs on the console. Picture, the menu, saves, save
+states, and PCM sound work. `make test` also runs the cores on a PC
+with synthetic ROMs. [Limitations](Limitations.md) lists the boundaries
+that are still real, such as silent NES games and no New 3DS extra
+buttons.

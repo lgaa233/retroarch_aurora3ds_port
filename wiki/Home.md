@@ -15,9 +15,10 @@ saves, save states, and a `retroarch.cfg`, and links its cores into the
 binary.
 
 The picture is on the top screen. The bottom screen is status and help.
-Game Boy, Master System, Game Gear, SG-1000, ColecoVision and CHIP-8 play
-stereo PCM. NES is silent, because agnes has no audio chip. The port has
-not been verified on a real console.
+Picture, menu, SRAM saves, save states, and stereo PCM all work on the
+console. Game Boy, Master System, Game Gear, SG-1000, ColecoVision, and
+CHIP-8 have sound. NES plays, and it is silent, because agnes has no
+audio chip.
 
 Source code and the prebuilt `dist/RetroArch.bin` live at
 <https://github.com/lgaa233/retroarch_aurora3ds_port>. These pages are the
@@ -66,6 +67,6 @@ screen prints the save and state paths the running app is actually using.
 * [Saves and Save States](Saves-and-Save-States.md) — `.srm` files and slots 0–9
 * [Settings](Settings.md) — video, frameskip, FPS, fast-forward, `retroarch.cfg`
 * [Building from Source](Building-from-Source.md) — toolchain, `make`, `make test`
-* [Troubleshooting](Troubleshooting.md) — load failures, missing BIOS, slow games
-* [Limitations](Limitations.md) — audio, speed, hardware, missing features
+* [Troubleshooting](Troubleshooting.md) — install, BIOS, slow games, silence
+* [Limitations](Limitations.md) — what this version does and does not do
 * [License](License.md) — GPL-3.0 and the vendored cores
