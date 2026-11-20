@@ -68,10 +68,28 @@ $(OUT): $(AURCC) $(SOURCES) build/blit11_blob.h
 	CPATH=$(CURDIR)/compat python3 $(AURCC) build src third_party/smsplus \
 	  third_party/minigb_apu third_party/nes_apu -o $(OUT) $(INCLUDES) $(DEFINES)
 
-# Host tests: the cores never touch the Aurora SDK, so they build and run on
-# the PC with synthetic ROMs.
-test: build/test_cores
+# Host tests: the cores and the scaler never touch the Aurora SDK, so they
+# build and run on the PC with synthetic ROMs and frames.
+test: build/test_cores build/test_blit build/test_blit9 build/test_audio
 	./build/test_cores
+	./build/test_blit
+	./build/test_blit9
+	./build/test_audio
+
+build/test_audio: tests/host/test_audio.c src/audio.c src/retroarch.h \
+                  tests/host/fake/aurora_app.h
+	@mkdir -p build
+	$(CC) -O1 -g -Wall -Wextra -I tests/host/fake -I src \
+	  -I third_party/libretro -o $@ tests/host/test_audio.c -lm
+
+build/test_blit: tests/host/test_blit.c arm11/ra_blit.c arm11/ra_blit.h
+	@mkdir -p build
+	$(CC) -O1 -g -Wall -Wextra -I arm11 -o $@ tests/host/test_blit.c
+
+build/test_blit9: tests/host/test_blit.c arm11/ra_blit.c arm11/ra_blit.h
+	@mkdir -p build
+	$(CC) -O1 -g -Wall -Wextra -DRA_BLIT_FULL_EXPAND=0 -I arm11 -o $@ \
+	  tests/host/test_blit.c
 
 TEST_SRC := tests/host/test_cores.c src/cores/cores.c src/cores/core_gb.c \
             src/cores/core_nes.c src/cores/core_sms.c src/cores/core_chip8.c \
