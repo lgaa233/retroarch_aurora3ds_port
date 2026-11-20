@@ -86,9 +86,8 @@ A prebuilt `dist/RetroArch.bin` is checked in.
 
 ## Limitations
 
-* **No audio.** The Aurora SDK plays preloaded WAV voices only; there is no
-  PCM streaming an emulator could feed. When the SDK grows one, the audio
-  callbacks in `src/environ.c` are the single place to wire it up.
+* **NES is silent.** agnes has no APU. Game Boy (minigb_apu), SMS Plus and
+  CHIP-8 play stereo PCM through CSND voices, the same path NovaLauncher uses.
 * Speed depends on the game: the whole emulator runs on the 134 MHz ARM9.
   Frameskip and the stretch-free scale modes help.
 * Save states are tied to the same ROM and the same RetroArch build.
@@ -102,7 +101,8 @@ src/main.c           entry point, the run loop, content loading, the OSD
 src/menu.c           RGUI-style menu: browser, settings, information
 src/video.c          blitter to Aurora's rotated 24-bit framebuffer + scaling
 src/input.c          3DS buttons -> RetroPad
-src/environ.c        RETRO_ENVIRONMENT answers, video/audio/input callbacks
+src/environ.c        RETRO_ENVIRONMENT answers and the video callback
+src/audio.c          stereo PCM rings played on CSND voices 6 and 7
 src/saves.c          paths, retroarch.cfg, SRAM, save states
 src/cores/core.h     the static-core descriptor (libretro signatures)
 src/cores/core_gb.c  Peanut-GB wrapper (plus its own serialize format)

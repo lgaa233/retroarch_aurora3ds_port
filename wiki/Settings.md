@@ -26,7 +26,7 @@ television pixel-aspect ratio.
 
 | Mode | `scale` in the cfg | Behavior |
 |------|--------------------|----------|
-| 1x (centered) | `0` | one source pixel per screen pixel, centered. Every core in 0.1.0 fits in 400×240, so this is the native picture. A frame larger than the screen on either axis would be scaled down to that edge |
+| 1x (centered) | `0` | one source pixel per screen pixel, centered. Every core in 0.1.1 fits in 400×240, so this is the native picture. A frame larger than the screen on either axis would be scaled down to that edge |
 | Fit (keep aspect) | `1` | the largest size that still fits in 400×240. Integer division can be a pixel off a perfect ratio |
 | Stretch (400x240) | `2` | always the full top screen, so the picture is stretched |
 

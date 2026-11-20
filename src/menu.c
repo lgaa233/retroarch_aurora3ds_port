@@ -466,7 +466,7 @@ static ra_menu_action_t tick_info(void) {
   draw_row(row++, false, MENU_DIM, "Console: %s",
            sys_is_new3ds() ? "New 3DS / New 2DS" : "Old 3DS / 2DS");
   draw_row(row++, false, MENU_DIM, "CPU: ARM9 @ 134 MHz (all models)");
-  draw_row(row++, false, MENU_DIM, "Audio: not available in the Aurora SDK");
+  draw_row(row++, false, MENU_DIM, "Audio: stereo PCM (NES has none)");
   row++;
   draw_row(row++, false, MENU_DIM, "Saves:  %s", ra_dir_saves());
   draw_row(row++, false, MENU_DIM, "States: %s", ra_dir_states());
@@ -476,6 +476,7 @@ static ra_menu_action_t tick_info(void) {
 /* --- the public face -------------------------------------------------------------- */
 
 void ra_menu_open(void) {
+  ra_audio_stop();
   menu_open = true;
   screen = SCR_MAIN;
   sel[SCR_MAIN] = ra_content.running ? MAIN_RESUME : MAIN_LOAD_CONTENT;

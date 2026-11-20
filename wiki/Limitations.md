@@ -1,6 +1,6 @@
 # Limitations
 
-This is RetroArch **0.1.0** for AuroraOS: a small libretro frontend with
+This is RetroArch **0.1.1** for AuroraOS: a small libretro frontend with
 four statically linked cores. The list below is the behavior of this
 source tree, not a roadmap.
 
@@ -22,15 +22,15 @@ into `RetroArch.bin`. You cannot drop in a `.so` core.
 
 ## Audio
 
-There is no sound. The Aurora SDK can play preloaded WAV voices and has
-no PCM stream. `src/environ.c` discards every sample the cores produce.
-Peanut-GB is built with sound compiled out. CHIP-8 still decrements its
-sound timer. SMS Plus still generates samples, and its game database can
-still mark a Master System title as FM-capable, which spends CPU time on
-audio that is never played.
+Game Boy, the Sega 8-bit cores and CHIP-8 play 16-bit stereo PCM. Samples
+are written into the OS PCM pool and looped on CSND voices 6 and 7, the
+same command NovaLauncher uses (`AUDIO_CMD_VOICE`). The frontend keeps the
+write head a little ahead of playback and drops extra batches while
+fast-forward is held, so the sound does not fall behind.
 
-When the SDK grows a PCM stream, those callbacks are the place it would
-be connected. This version does not contain that path.
+NES stays silent. agnes does not emulate the NES APU. The FM chip in SMS
+Plus is left off: it costs ARM9 time and this build plays the PSG. Master
+System and Game Gear audio is mixed at 22050 Hz.
 
 ## Speed
 

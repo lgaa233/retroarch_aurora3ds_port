@@ -63,14 +63,5 @@ void ra_video_cb(const void *data, unsigned width, unsigned height,
   ra_video_submit(data, width, height, pitch);
 }
 
-void ra_audio_sample_cb(int16_t left, int16_t right) {
-  /* The Aurora SDK has no PCM streaming (only preloaded WAV voices), so
-   * core audio has nowhere to go yet. */
-  (void)left;
-  (void)right;
-}
-
-size_t ra_audio_batch_cb(const int16_t *data, size_t frames) {
-  (void)data;
-  return frames;
-}
+/* ra_audio_sample_cb and ra_audio_batch_cb are in audio.c. They play the
+ * cores' interleaved stereo through two looping CSND voices. */

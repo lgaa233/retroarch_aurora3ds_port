@@ -10,7 +10,7 @@
 #include <libretro.h>
 #include "cores/core.h"
 
-#define RA_VERSION "0.1.0"
+#define RA_VERSION "0.1.1"
 #define RA_NAME "RetroArch"
 
 #define RA_PATH_MAX 300
@@ -68,6 +68,8 @@ void ra_video_cb(const void *data, unsigned width, unsigned height,
                  size_t pitch);
 void ra_audio_sample_cb(int16_t left, int16_t right);
 size_t ra_audio_batch_cb(const int16_t *data, size_t frames);
+/* Silence the looping voices. The menu and unloading call this. */
+void ra_audio_stop(void);
 void ra_input_poll_cb(void);
 int16_t ra_input_state_cb(unsigned port, unsigned device, unsigned index,
                           unsigned id);

@@ -286,7 +286,7 @@ static void sms_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.max_height = 240;
   info->geometry.aspect_ratio = 4.0f / 3.0f;
   info->timing.fps = (sms.display == DISPLAY_PAL) ? FPS_PAL : FPS_NTSC;
-  info->timing.sample_rate = 0.0;
+  info->timing.sample_rate = (double)SOUND_FREQUENCY;
 }
 
 static void sms_core_run(void) {

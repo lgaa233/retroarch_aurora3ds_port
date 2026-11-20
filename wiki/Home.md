@@ -2,7 +2,7 @@
 
 RetroArch for AuroraOS is an unofficial libretro frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS) on the Nintendo 3DS.
-Version **0.1.0** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
+Version **0.1.1** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
 3DS, New 3DS XL, and New 2DS XL). Aurora apps run on the ARM9, and that CPU
 is the same chip across the family: ARM9 at 134 MHz, with no floating-point
 unit.
@@ -15,8 +15,9 @@ saves, save states, and a `retroarch.cfg`, and links its cores into the
 binary.
 
 The picture is on the top screen. The bottom screen is status and help.
-There is no audio in this version. The port has not been verified on a
-real console.
+Game Boy, Master System, Game Gear, SG-1000, ColecoVision and CHIP-8 play
+stereo PCM. NES is silent, because agnes has no audio chip. The port has
+not been verified on a real console.
 
 Source code and the prebuilt `dist/RetroArch.bin` live at
 <https://github.com/lgaa233/retroarch_aurora3ds_port>. These pages are the

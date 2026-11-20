@@ -59,11 +59,11 @@ The size and mapper rules are collected on
 
 ## There is no sound
 
-That is how this version works. The Aurora SDK used here can play
-preloaded WAV voices and has no PCM stream an emulator can write. The
-audio callbacks in `src/environ.c` drop every sample. CHIP-8 still counts
-its sound timer down. Nothing beeps. Details are on
-[Limitations](Limitations.md).
+NES titles are silent: agnes has no APU. Other cores should be audible.
+Sound needs an app started from the Home Menu, so the ARM11 core is
+running, and a console whose Aurora core understands voices (version 82
+or later; current Aurora does). Opening the RetroArch menu stops the
+voices. Details are on [Limitations](Limitations.md).
 
 ## The game is slow or stuttering
 
@@ -126,7 +126,7 @@ replace it with the values from the session.
 
 ## This build has not been run on a real 3DS for these pages
 
-Behavior above is what the 0.1.0 source does, and `make test` exercises
+Behavior above is what the 0.1.1 source does, and `make test` exercises
 the cores on a PC with synthetic ROMs. The port has not been verified on
 console hardware. A failure that the code does not already explain may
 be that gap. [Limitations](Limitations.md) lists the known boundaries.

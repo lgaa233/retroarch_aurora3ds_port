@@ -61,7 +61,7 @@ Useful defines compiled in (the same flags for the host tests):
 | `USE_Z80` | SMS Plus Z80 |
 
 The app icon is `src/RetroArch.icon` (a 32×32 picture). Version
-`0.1.0` is `RA_VERSION` in `src/retroarch.h`.
+`0.1.1` is `RA_VERSION` in `src/retroarch.h`.
 
 ## Host tests
 
@@ -91,7 +91,8 @@ src/main.c              entry, run loop, content loading, OSD
 src/menu.c              menu, file browser, settings, information
 src/video.c             blit to Aurora's 24-bit top screen, scale, frameskip
 src/input.c             3DS buttons to RetroPad port 0
-src/environ.c           libretro environment; audio callbacks are stubs
+src/environ.c           libretro environment
+src/audio.c             stereo PCM played on CSND voices
 src/saves.c             paths, retroarch.cfg, SRAM, save states
 src/retroarch.h         RA_VERSION, config struct, shared declarations
 src/cores/core.h        static-core descriptor

@@ -115,7 +115,7 @@ static void nes_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.aspect_ratio =
       (float)AGNES_SCREEN_WIDTH / (float)AGNES_SCREEN_HEIGHT;
   info->timing.fps = 60.0;
-  info->timing.sample_rate = 0.0; /* no audio on AuroraOS */
+  info->timing.sample_rate = 0.0; /* agnes has no APU */
 }
 
 static void nes_run(void) {

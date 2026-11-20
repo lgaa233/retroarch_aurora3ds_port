@@ -15,7 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ENABLE_SOUND 0
+#include "minigb_apu.h"
+
+uint8_t audio_read(uint16_t addr);
+void audio_write(uint16_t addr, uint8_t val);
+
+#define ENABLE_SOUND 1
 #define ENABLE_LCD 1
 #include "peanut_gb.h"
 
@@ -26,6 +31,15 @@ static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
 
 static struct gb_s gb;
+static struct minigb_apu_ctx apu;
+
+uint8_t audio_read(uint16_t addr) {
+  return minigb_apu_audio_read(&apu, addr);
+}
+
+void audio_write(uint16_t addr, uint8_t val) {
+  minigb_apu_audio_write(&apu, addr, val);
+}
 static uint8_t *rom;
 static size_t rom_size;
 static uint8_t *cart_ram;
@@ -147,6 +161,7 @@ static bool gbc_load_game(const struct retro_game_info *game) {
   }
 
   gb_init_lcd(&gb, lcd_draw_line);
+  minigb_apu_audio_init(&apu);
   memset(fb, 0, sizeof(fb));
 
   if (env_cb)
@@ -174,7 +189,7 @@ static void gbc_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.max_height = LCD_HEIGHT;
   info->geometry.aspect_ratio = (float)LCD_WIDTH / (float)LCD_HEIGHT;
   info->timing.fps = 4194304.0 / 70224.0; /* 59.73 Hz, the DMG's rate */
-  info->timing.sample_rate = 0.0;         /* no audio on AuroraOS */
+  info->timing.sample_rate = (double)AUDIO_SAMPLE_RATE;
 }
 
 static void gbc_run(void) {
@@ -200,11 +215,18 @@ static void gbc_run(void) {
 
   if (video_cb)
     video_cb(fb, LCD_WIDTH, LCD_HEIGHT, LCD_WIDTH * sizeof(uint16_t));
+  if (audio_batch_cb) {
+    audio_sample_t samples[AUDIO_SAMPLES_TOTAL];
+    minigb_apu_audio_callback(&apu, samples);
+    audio_batch_cb(samples, AUDIO_SAMPLES);
+  }
 }
 
 static void gbc_reset(void) {
-  if (loaded)
-    gb_reset(&gb);
+  if (!loaded)
+    return;
+  gb_reset(&gb);
+  minigb_apu_audio_init(&apu);
 }
 
 /* Save state: header, struct gb_s, cart RAM. */
@@ -216,12 +238,16 @@ typedef struct {
   uint32_t ram_size;
 } gb_state_header_t;
 
-#define GB_STATE_VERSION 1u
+#define GB_STATE_VERSION 2u
+
+static size_t gbc_state_bytes(void) {
+  return sizeof(gb) + cart_ram_size + sizeof(apu);
+}
 
 static size_t gbc_serialize_size(void) {
   if (!loaded)
     return 0;
-  return sizeof(gb_state_header_t) + sizeof(gb) + cart_ram_size;
+  return sizeof(gb_state_header_t) + gbc_state_bytes();
 }
 
 static bool gbc_serialize(void *data, size_t size) {
@@ -239,6 +265,7 @@ static bool gbc_serialize(void *data, size_t size) {
   memcpy(p + sizeof(h), &gb, sizeof(gb));
   if (cart_ram_size)
     memcpy(p + sizeof(h) + sizeof(gb), cart_ram, cart_ram_size);
+  memcpy(p + sizeof(h) + sizeof(gb) + cart_ram_size, &apu, sizeof(apu));
   return true;
 }
 
@@ -253,11 +280,12 @@ static bool gbc_unserialize(const void *data, size_t size) {
       h.gb_size != sizeof(gb) || h.rom_size != rom_size ||
       h.ram_size != cart_ram_size)
     return false;
-  if (size < sizeof(h) + sizeof(gb) + cart_ram_size)
+  if (size < sizeof(h) + gbc_state_bytes())
     return false;
   memcpy(&gb, p + sizeof(h), sizeof(gb));
   if (cart_ram_size)
     memcpy(cart_ram, p + sizeof(h) + sizeof(gb), cart_ram_size);
+  memcpy(&apu, p + sizeof(h) + sizeof(gb) + cart_ram_size, sizeof(apu));
   fix_pointers();
   return true;
 }
