@@ -5,6 +5,8 @@
 const ra_core_t *const ra_cores[] = {
   &ra_core_gb,
   &ra_core_nes,
+  &ra_core_sms,
+  &ra_core_chip8,
 };
 const int ra_core_count = (int)(sizeof(ra_cores) / sizeof(ra_cores[0]));
 

@@ -183,14 +183,18 @@ static void draw_row(int row, bool selected, uint32_t color, const char *fmt,
 }
 
 static void draw_bottom_menu(void) {
+  int c, y = 64;
+
   gfx_clear(SCREEN_BOTTOM, COLOR_BLACK);
   gfx_rect(SCREEN_BOTTOM, 0, 0, SCREEN_BOTTOM_WIDTH, 16, MENU_BAR);
   gfx_text(SCREEN_BOTTOM, 4, 4, COLOR_AURORA, "%s %s", RA_NAME, RA_VERSION);
   gfx_text(SCREEN_BOTTOM, 4, 28, MENU_DIM, "D-pad: move    A: choose");
   gfx_text(SCREEN_BOTTOM, 4, 40, MENU_DIM, "B: back        HOME: quit");
-  gfx_text(SCREEN_BOTTOM, 4, 64, MENU_DIM, "Cores: Game Boy (.gb .dmg)");
-  gfx_text(SCREEN_BOTTOM, 4, 76, MENU_DIM, "       NES (.nes)");
-  gfx_text(SCREEN_BOTTOM, 4, 100, MENU_DIM, "ROMs go in SD:/Aurora/ROMs");
+  gfx_text(SCREEN_BOTTOM, 4, y, MENU_DIM, "Cores:");
+  for (c = 0; c < ra_core_count; c++, y += 12)
+    gfx_text(SCREEN_BOTTOM, 60, y, MENU_DIM, "%s (%s)",
+             ra_cores[c]->library_name, ra_cores[c]->valid_extensions);
+  gfx_text(SCREEN_BOTTOM, 4, y + 12, MENU_DIM, "ROMs go in SD:/Aurora/ROMs");
   bottom_drawn = true;
 }
 
@@ -455,7 +459,7 @@ static ra_menu_action_t tick_info(void) {
   row++;
   draw_row(row++, false, MENU_TEXT, "Cores:");
   for (c = 0; c < ra_core_count; c++)
-    draw_row(row++, false, MENU_DIM, "  %s %s (.%s)",
+    draw_row(row++, false, MENU_DIM, "  %s %s (%s)",
              ra_cores[c]->library_name, ra_cores[c]->library_version,
              ra_cores[c]->valid_extensions);
   row++;

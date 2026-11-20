@@ -21,10 +21,19 @@ ARM9, which is identical across the family.
 |------|--------|-----------|-------------|------|
 | [Peanut-GB](https://github.com/deltabeard/Peanut-GB) | Game Boy (DMG) | `.gb` `.dmg` | yes | yes (battery saves) |
 | [agnes](https://github.com/kgabis/agnes) | NES / Famicom | `.nes` | yes | — |
+| [SMS Plus GX](https://github.com/libretro/smsplus-gx) | Sega Master System | `.sms` | yes | yes (battery saves) |
+| | Sega Game Gear | `.gg` | yes | yes |
+| | Sega SG-1000 | `.sg` | yes | — |
+| | ColecoVision | `.col` | yes | — |
+| chip8 (this repo) | CHIP-8 | `.ch8` | yes | — |
 
-Both are integer-only emulators chosen for the FPU-less 134 MHz ARM9. There is
+All are integer-only emulators chosen for the FPU-less 134 MHz ARM9. There is
 no dynamic loader on AuroraOS, so cores are linked in behind a descriptor
 struct, the way RetroArch's own static (griffin) builds link cores.
+
+ColecoVision games need the console's BIOS as `SD:/Aurora/ROMs/BIOS.col`
+(8 KB). An optional Master System BIOS is picked up from
+`SD:/Aurora/ROMs/bios.sms`.
 
 ## Install
 
@@ -48,6 +57,11 @@ Saves land in `SD:/Aurora/Apps/C/RetroArch/saves/`, save states in
 | L / R in the file browser | page up / down |
 | Hold R in game | fast-forward (enable it in Settings first) |
 | HOME | back to the Aurora Home Menu (SRAM is saved on the way out) |
+
+Per-system notes: on the Game Gear START is the Start button and on the
+Master System it is Pause. ColecoVision keypad keys ride on X=1, Y=2, R=3,
+L=4, START=# and SELECT=\*. The CHIP-8 4x4 keypad maps D-pad to 2/4/6/8,
+A=5, B=6, X=1, Y=3, L=A, R=B, START=C, SELECT=D.
 
 Menu: Resume, Restart, Save/Load State (10 slots), Load Content, Settings
 (video scale 1x / fit / stretch, frameskip 0–4, FPS counter, fast-forward),
@@ -89,6 +103,8 @@ src/saves.c          paths, retroarch.cfg, SRAM, save states
 src/cores/core.h     the static-core descriptor (libretro signatures)
 src/cores/core_gb.c  Peanut-GB wrapper (plus its own serialize format)
 src/cores/core_nes.c agnes wrapper (direct PPU buffer -> RGB565 LUT)
+src/cores/core_sms.c SMS Plus GX wrapper (SMS, GG, SG-1000, ColecoVision)
+src/cores/core_chip8.c  a CHIP-8 interpreter written for this frontend
 compat/dirent.h      devkitARM-style <dirent.h> for plain newlib toolchains
 tests/host/          core smoke tests with synthesised GB/NES ROMs
 third_party/         vendored libretro.h, Peanut-GB, agnes (all MIT)
@@ -98,4 +114,6 @@ third_party/         vendored libretro.h, Peanut-GB, agnes (all MIT)
 
 GPL-3.0 (like RetroArch and AuroraOS; an app built with the Aurora SDK links
 GPL code from the OS). Vendored components keep their own licenses:
-`libretro.h` (MIT), Peanut-GB (MIT), agnes (MIT).
+`libretro.h` (MIT), Peanut-GB (MIT), agnes (MIT), SMS Plus GX (GPL-2.0 or
+later; Charles MacDonald, Eke-Eke, gameblabla — see the headers in
+`third_party/smsplus/`).

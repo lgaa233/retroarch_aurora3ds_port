@@ -16,9 +16,15 @@ OUT      := RetroArch.bin
 AURCC    := $(AURORA_DIR)/sdk/aurcc.py
 INCLUDES := -I $(CURDIR)/third_party/libretro \
             -I $(CURDIR)/third_party/peanut_gb \
-            -I $(CURDIR)/third_party/agnes
+            -I $(CURDIR)/third_party/agnes \
+            -I $(CURDIR)/third_party/smsplus
+# The same flags parse for gcc and for aurcc.py's -D option.
+DEFINES  := -DNOZIP_SUPPORT -DMAXIM_PSG -DUSE_Z80
+
+SMSPLUS_SRC := $(wildcard third_party/smsplus/*.c)
 
 SOURCES := $(wildcard src/*.c src/*.h src/cores/*.c src/cores/*.h) \
+           $(SMSPLUS_SRC) $(wildcard third_party/smsplus/*.h) \
            src/RetroArch.icon
 
 .PHONY: all test clean distclean aurora
@@ -32,19 +38,23 @@ $(AURCC):
 	cd $(AURORA_DIR) && git checkout $(AURORA_COMMIT)
 
 $(OUT): $(AURCC) $(SOURCES)
-	CPATH=$(CURDIR)/compat python3 $(AURCC) build src -o $(OUT) $(INCLUDES)
+	CPATH=$(CURDIR)/compat python3 $(AURCC) build src third_party/smsplus \
+	  -o $(OUT) $(INCLUDES) $(DEFINES)
 
 # Host tests: the cores never touch the Aurora SDK, so they build and run on
 # the PC with synthetic ROMs.
 test: build/test_cores
 	./build/test_cores
 
-build/test_cores: tests/host/test_cores.c src/cores/cores.c \
-                  src/cores/core_gb.c src/cores/core_nes.c src/cores/core.h
+TEST_SRC := tests/host/test_cores.c src/cores/cores.c src/cores/core_gb.c \
+            src/cores/core_nes.c src/cores/core_sms.c src/cores/core_chip8.c \
+            $(SMSPLUS_SRC)
+
+build/test_cores: $(TEST_SRC) src/cores/core.h
 	@mkdir -p build
-	$(CC) -O1 -g -Wall -Wextra -I third_party/libretro -I third_party/peanut_gb \
-	  -I third_party/agnes -I src -o $@ tests/host/test_cores.c \
-	  src/cores/cores.c src/cores/core_gb.c src/cores/core_nes.c
+	$(CC) -O1 -g -Wall -Wextra -Wno-unused-parameter $(DEFINES) \
+	  -I third_party/libretro -I third_party/peanut_gb -I third_party/agnes \
+	  -I third_party/smsplus -I src -o $@ $(TEST_SRC) -lm
 
 clean:
 	rm -rf build $(OUT) $(AURORA_DIR)/sdk/build

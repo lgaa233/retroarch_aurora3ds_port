@@ -109,6 +109,34 @@ static uint8_t *make_gb_rom(size_t *out_size) {
   return rom;
 }
 
+static uint8_t *make_sms_rom(size_t *out_size) {
+  /* 32 KB, no "TMR SEGA" header: auto-detects as an export SMS2. The Z80
+   * spins on jp $0000. */
+  size_t size = 32 * 1024;
+  uint8_t *rom = calloc(1, size);
+
+  rom[0] = 0xC3;
+  rom[1] = 0x00;
+  rom[2] = 0x00;
+
+  *out_size = size;
+  return rom;
+}
+
+static uint8_t *make_chip8_rom(size_t *out_size) {
+  /* Draw the "0" glyph at (0, 0), then spin: jp $0206. */
+  static const uint8_t prog[] = {
+    0x60, 0x00,       /* 6000: V0 = 0 */
+    0xF0, 0x29,       /* F029: I = glyph for V0 */
+    0xD0, 0x05,       /* D005: draw 8x5 at (V0, V0) */
+    0x12, 0x06,       /* 1206: jp self */
+  };
+  uint8_t *rom = malloc(sizeof(prog));
+  memcpy(rom, prog, sizeof(prog));
+  *out_size = sizeof(prog);
+  return rom;
+}
+
 static uint8_t *make_nes_rom(size_t *out_size) {
   size_t size = 16 + 16384 + 8192;
   uint8_t *rom = calloc(1, size);
@@ -142,7 +170,7 @@ static void run_frames(const ra_core_t *core, int n) {
 }
 
 static void exercise(const ra_core_t *core, uint8_t *rom, size_t rom_size,
-                     unsigned want_w, unsigned want_h, bool want_sram) {
+                     unsigned want_w, unsigned want_h, size_t want_sram) {
   struct retro_game_info game;
   size_t state_size;
   void *state;
@@ -175,7 +203,9 @@ static void exercise(const ra_core_t *core, uint8_t *rom, size_t rom_size,
   if (want_sram) {
     void *mem = core->get_memory_data(RETRO_MEMORY_SAVE_RAM);
     size_t mem_size = core->get_memory_size(RETRO_MEMORY_SAVE_RAM);
-    CHECK(mem != NULL && mem_size == 0x2000, "8 KB of cart RAM exposed");
+    snprintf(what, sizeof(what), "%u KB of cart RAM exposed",
+             (unsigned)(want_sram / 1024));
+    CHECK(mem != NULL && mem_size == want_sram, what);
   }
 
   state_size = core->serialize_size();
@@ -206,15 +236,28 @@ int main(void) {
   CHECK(ra_core_for_path("game.gb") == &ra_core_gb, "routes .gb");
   CHECK(ra_core_for_path("game.DMG") == &ra_core_gb, "routes .DMG");
   CHECK(ra_core_for_path("game.nes") == &ra_core_nes, "routes .nes");
+  CHECK(ra_core_for_path("game.sms") == &ra_core_sms, "routes .sms");
+  CHECK(ra_core_for_path("game.gg") == &ra_core_sms, "routes .gg");
+  CHECK(ra_core_for_path("game.sg") == &ra_core_sms, "routes .sg");
+  CHECK(ra_core_for_path("game.col") == &ra_core_sms, "routes .col");
+  CHECK(ra_core_for_path("game.ch8") == &ra_core_chip8, "routes .ch8");
   CHECK(ra_core_for_path("game.gba") == NULL, "refuses .gba");
   CHECK(ra_core_for_path("game") == NULL, "refuses no extension");
 
   rom = make_gb_rom(&rom_size);
-  exercise(&ra_core_gb, rom, rom_size, 160, 144, true);
+  exercise(&ra_core_gb, rom, rom_size, 160, 144, 0x2000);
   free(rom);
 
   rom = make_nes_rom(&rom_size);
-  exercise(&ra_core_nes, rom, rom_size, 256, 240, false);
+  exercise(&ra_core_nes, rom, rom_size, 256, 240, 0);
+  free(rom);
+
+  rom = make_sms_rom(&rom_size);
+  exercise(&ra_core_sms, rom, rom_size, 256, 192, 0x8000);
+  free(rom);
+
+  rom = make_chip8_rom(&rom_size);
+  exercise(&ra_core_chip8, rom, rom_size, 64, 32, 0);
   free(rom);
 
   if (failures) {
