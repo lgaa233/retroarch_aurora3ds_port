@@ -1,0 +1,6 @@
+build/
+third_party/AuroraOS/
+/RetroArch.bin
+*.o
+*.map
+__pycache__/
