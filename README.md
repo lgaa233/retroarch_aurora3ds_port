@@ -88,8 +88,9 @@ A prebuilt `dist/RetroArch.bin` is checked in.
 
 ## Limitations
 
-* **NES is silent.** agnes has no APU. Game Boy (minigb_apu), SMS Plus and
-  CHIP-8 play stereo PCM through CSND voices, the same path NovaLauncher uses.
+* **NES audio is simplified.** agnes handles CPU/PPU; a lightweight integer 2A03
+  APU adds PCM (DMC sample playback from ROM is not fully emulated). All cores
+  stream stereo PCM through CSND voices, the same path NovaLauncher uses.
 * Speed depends on the game: the whole emulator runs on the 134 MHz ARM9.
   Frameskip and the stretch-free scale modes help.
 * Save states are tied to the same ROM and the same RetroArch build.
