@@ -61,7 +61,7 @@ Useful defines compiled in (the same flags for the host tests):
 | `USE_Z80` | SMS Plus Z80 |
 
 The app icon is `src/RetroArch.icon` (a 32×32 picture). Version
-`0.1.3` is `RA_VERSION` in `src/retroarch.h`.
+`0.1.4` is `RA_VERSION` in `src/retroarch.h`.
 
 ## Host tests
 

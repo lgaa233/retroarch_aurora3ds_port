@@ -1,6 +1,6 @@
 # Limitations
 
-This is RetroArch **0.1.3** for AuroraOS: a working libretro frontend with
+This is RetroArch **0.1.4** for AuroraOS: a working libretro frontend with
 four statically linked cores. Picture, controls, the menu, SRAM saves,
 save states, and PCM sound work on the console. The list below is what
 this version does, not a list of broken features.
@@ -20,15 +20,15 @@ into `RetroArch.bin`. You cannot drop in a `.so` core.
 
 ## Audio
 
-Game Boy, the Sega 8-bit cores and CHIP-8 play 16-bit stereo PCM. Samples
-are written into the OS PCM pool and looped on CSND voices 6 and 7, the
-same command NovaLauncher uses (`AUDIO_CMD_VOICE`). The frontend keeps the
-write head a little ahead of playback and drops extra batches while
-fast-forward is held, so the sound does not fall behind.
+Game Boy, the Sega 8-bit cores and CHIP-8 play 16-bit stereo PCM. The
+frontend upsamples everything to 32768 Hz with a linear interpolator and a
+lowpass, then plays it quieter than full scale, so square waves are not
+a buzz. Samples loop on CSND voices 6 and 7. Fast-forward drops extra
+batches so the sound does not fall behind.
 
 NES gameplay works and stays silent. agnes does not emulate the NES APU.
-Master System and Game Gear audio is the PSG (and FM, when that game's
-database entry turns it on), mixed at 22050 Hz.
+Master System and Game Gear audio is the PSG, generated at 22050 Hz and
+played at 32768 Hz. FM stays off so a frame still fits.
 
 ## Speed
 

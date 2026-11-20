@@ -216,7 +216,8 @@ static bool sms_load_game(const struct retro_game_info *game) {
   ext = path_ext(game->path);
 
   memset(&option, 0, sizeof(option));
-  option.fm = 0; /* the FM unit costs ARM9 cycles and nothing plays it yet */
+  option.fm = 0; /* YM2413 on top of the PSG does not fit a 16 ms frame */
+  option.soundlevel = 1; /* the mixer multiplies by this; 0 would be silence */
   option.spritelimit = 1;
   option.tms_pal = 2;
   option.country = 0;

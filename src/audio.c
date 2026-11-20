@@ -23,22 +23,52 @@ extern void app_core_post(uint32_t cmd, uint32_t a0, uint32_t a1, uint32_t a2,
 extern void os_dcache_clean_range(const void *addr, uint32_t len);
 
 #define RA_AUDIO_RING 4096u
-#define RA_AUDIO_AHEAD 256u
+#define RA_AUDIO_AHEAD 512u
 #define RA_AUDIO_VOICE_L 6u
 #define RA_AUDIO_VOICE_R 7u
-#define RA_AUDIO_VOL 0x7000u
+/* Half of full scale. The cores emit hard squares; full volume clips. */
+#define RA_AUDIO_VOL 0x4000u
+/* Everything is played at this rate. Lower-rate cores are interpolated up. */
+#define RA_AUDIO_OUT 32768u
 
 static int16_t *ring_l = (int16_t *)(uintptr_t)AUDIO_PCM_ADDR;
 static int16_t *ring_r =
     (int16_t *)(uintptr_t)(AUDIO_PCM_ADDR + RA_AUDIO_RING * sizeof(int16_t));
 static int playing;
-static uint32_t rate;
 static uint32_t written;
 static uint64_t t0;
 
+/* Linear upsampler plus a one-pole lowpass. The lowpass is what takes the
+ * edge off Game Boy and PSG squares, which otherwise come out as a buzz. */
+static int32_t prev_l, prev_r;
+static int have_prev;
+static uint32_t res_acc;
+static int32_t lp_l, lp_r;
+
 static uint32_t played_now(void) {
   uint64_t us = sys_micros() - t0;
-  return (uint32_t)((us * rate) / 1000000ull);
+  return (uint32_t)((us * RA_AUDIO_OUT) / 1000000ull);
+}
+
+static void push_sample(int32_t l, int32_t r) {
+  uint32_t p;
+  /* One-pole lowpass, then a hard ceiling so a square wave cannot slam. */
+  lp_l += (l - lp_l) >> 2;
+  lp_r += (r - lp_r) >> 2;
+  l = lp_l;
+  r = lp_r;
+  if (l > 9000)
+    l = 9000;
+  else if (l < -9000)
+    l = -9000;
+  if (r > 9000)
+    r = 9000;
+  else if (r < -9000)
+    r = -9000;
+  p = written & (RA_AUDIO_RING - 1u);
+  ring_l[p] = (int16_t)l;
+  ring_r[p] = (int16_t)r;
+  written++;
 }
 
 static void clean_span(int16_t *ring, uint32_t index, uint32_t count) {
@@ -67,15 +97,19 @@ static void ra_audio_start(uint32_t new_rate) {
     return;
   memset(ring_l, 0, RA_AUDIO_RING * sizeof(int16_t) * 2);
   os_dcache_clean_range(ring_l, RA_AUDIO_RING * sizeof(int16_t) * 2);
-  rate = new_rate;
+  (void)new_rate;
   written = RA_AUDIO_AHEAD;
   t0 = sys_micros();
+  have_prev = 0;
+  res_acc = 0;
+  lp_l = lp_r = 0;
+  prev_l = prev_r = 0;
   app_core_post(AUDIO_CMD_VOICE, RA_AUDIO_VOICE_L | flags,
                 (uint32_t)(uintptr_t)ring_l, RA_AUDIO_RING * sizeof(int16_t),
-                rate);
+                RA_AUDIO_OUT);
   app_core_post(AUDIO_CMD_VOICE, RA_AUDIO_VOICE_R | flags,
                 (uint32_t)(uintptr_t)ring_r, RA_AUDIO_RING * sizeof(int16_t),
-                rate);
+                RA_AUDIO_OUT);
   playing = 1;
 }
 
@@ -89,28 +123,48 @@ size_t ra_audio_batch_cb(const int16_t *data, size_t frames) {
   want = (uint32_t)(ra_content.av.timing.sample_rate + 0.5);
   if (want < 8000u || want > 48000u || !snd_available())
     return frames;
-  if (!playing || want != rate)
-    ra_audio_start(want);
+  if (!playing)
+    ra_audio_start(RA_AUDIO_OUT);
   if (!playing)
     return frames;
 
   played = played_now();
-  /* Behind the speaker: jump the write head. Do not restart the voice. */
   if ((int32_t)(played + 64u - written) > 0)
     written = played + RA_AUDIO_AHEAD;
-  /* Ahead (fast-forward produced extra batches): drop them. */
   if ((int32_t)(written - played) > 2048)
     return frames;
 
   at = written;
   for (i = 0; i < frames; i++) {
-    uint32_t p = (at + (uint32_t)i) & (RA_AUDIO_RING - 1u);
-    ring_l[p] = data[i * 2];
-    ring_r[p] = data[i * 2 + 1];
+    int32_t cur_l = data[i * 2];
+    int32_t cur_r = data[i * 2 + 1];
+    uint32_t n, k;
+    if (!have_prev) {
+      prev_l = cur_l;
+      prev_r = cur_r;
+      have_prev = 1;
+      continue;
+    }
+    /* How many output samples this input step covers. 32768 in -> 1,
+     * 22050 in -> 1 or 2, so the speaker always runs at RA_AUDIO_OUT. */
+    res_acc += RA_AUDIO_OUT;
+    n = 0;
+    while (res_acc >= want && n < 4u) {
+      res_acc -= want;
+      n++;
+    }
+    for (k = 1; k <= n; k++) {
+      int32_t l = prev_l + (cur_l - prev_l) * (int32_t)k / (int32_t)n;
+      int32_t r = prev_r + (cur_r - prev_r) * (int32_t)k / (int32_t)n;
+      push_sample(l, r);
+    }
+    prev_l = cur_l;
+    prev_r = cur_r;
   }
-  clean_span(ring_l, at, (uint32_t)frames);
-  clean_span(ring_r, at, (uint32_t)frames);
-  written = at + (uint32_t)frames;
+  if (written != at) {
+    clean_span(ring_l, at, written - at);
+    clean_span(ring_r, at, written - at);
+  }
   return frames;
 }
 

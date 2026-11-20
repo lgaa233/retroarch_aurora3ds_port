@@ -176,21 +176,25 @@ int main(void) {
 
     ra_input_update();
     {
-      /* A frame that missed 60 Hz skips the next picture, up to two in a
-       * row, so the ARM9 can spend the time on the game instead of the blit. */
-      static uint32_t last_ms;
-      static int skipped;
-      if (last_ms > 20 && skipped < 1) {
+      /* Expanded frames cost more to draw than 16 ms. Run the emulator
+       * often enough to stay near 60 Hz, and only copy the last picture,
+       * so Stretch and Fit do not play in slow motion. */
+      static uint32_t emu_clock;
+      static int fresh = 1;
+      uint32_t now = sys_millis();
+      int guard = 0;
+      if (fresh || now - emu_clock > 80) {
+        emu_clock = now;
+        fresh = 0;
+      }
+      while (emu_clock + 16 < now && guard < 3) {
         ra_video_skip_next();
-        skipped++;
-      } else {
-        skipped = 0;
-      }
-      {
-        uint32_t t0 = sys_millis();
         ra_content.core->run();
-        last_ms = sys_millis() - t0;
+        emu_clock += 16;
+        guard++;
       }
+      ra_content.core->run();
+      emu_clock += 16;
     }
 
     if (ra_config.fast_forward && (hid_keys_held() & KEY_R)) {

@@ -2,7 +2,7 @@
 
 RetroArch for AuroraOS is an unofficial libretro frontend for
 [AuroraOS](https://github.com/TeamAuroraOS/AuroraOS) on the Nintendo 3DS.
-Version **0.1.3** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
+Version **0.1.4** runs on every 3DS model (original 3DS, 3DS XL, 2DS, New
 3DS, New 3DS XL, and New 2DS XL). Aurora apps run on the ARM9, and that CPU
 is the same chip across the family: ARM9 at 134 MHz, with no floating-point
 unit.
