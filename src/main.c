@@ -180,7 +180,7 @@ int main(void) {
        * row, so the ARM9 can spend the time on the game instead of the blit. */
       static uint32_t last_ms;
       static int skipped;
-      if (last_ms > 16 && skipped < 2) {
+      if (last_ms > 20 && skipped < 1) {
         ra_video_skip_next();
         skipped++;
       } else {

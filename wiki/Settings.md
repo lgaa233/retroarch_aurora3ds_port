@@ -10,7 +10,7 @@ move between rows.
 
 | Row on screen | What it does | Default |
 |---------------|--------------|---------|
-| Video Scale | `1x (centered)`, `Native (fast)`, or `Stretch (400x240)` | Native |
+| Video Scale | `1x (centered)`, `Fit (keep aspect)`, or `Stretch (400x240)` | Fit |
 | Frameskip | `0` through `4` | 0 |
 | Show FPS | `On` / `Off` | Off |
 | Fast Fwd (hold R) | `On` / `Off`. Hold R in game to use it | Off |
@@ -27,15 +27,10 @@ television pixel-aspect ratio.
 | Mode | `scale` in the cfg | Behavior |
 |------|--------------------|----------|
 | 1x (centered) | `0` | one source pixel per screen pixel, centered. A frame larger than the screen on either axis is scaled down to that edge |
-| Native (fast) | `1` | the largest whole-number multiple that still fits. Game Boy, Game Gear, NES, and Master System stay at 1x, because 2x does not fit. CHIP-8 (64×32) is drawn at 6x |
-| Stretch (400x240) | `2` | always the full top screen. This paints many more pixels and is the slow mode |
+| Fit (keep aspect) | `1` | the largest size that still fits in 400×240, nearest pixel |
+| Stretch (400x240) | `2` | always the full top screen |
 
-Native is the default because stretching the picture was enough to push games under 60 fps, which slowed the sound with them.
-
-* Game Boy, Game Gear, NES, and Master System stay at their native size
-  in both 1x and Native. Stretch is what widens them to 400×240, and it
-  is the slow one.
-* CHIP-8 is 64×32. 1x is a small block. Native draws it at 384×192.
+The copy onto the screen is packed into 32-bit stores, the same way Aurora fills a screen. Fit is the normal picture.
 
 See [Limitations](Limitations.md).
 

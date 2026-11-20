@@ -1,9 +1,9 @@
 /* PCM playback through the Aurora ARM11 core.
  *
- * One looping mono voice. The ring lives in the PCM pool and the ARM9 only
- * writes ahead of the play head. It does not restart the voice when the
- * emulator falls behind: a restart waits on the ARM11 and was stretching
- * both the game and the sound.
+ * Stereo, one looping voice per side. The rings live in the PCM pool and
+ * the ARM9 only writes ahead of the play head. The voice is not restarted
+ * when a frame is late: that wait on the ARM11 was stretching the game
+ * and the sound together.
  */
 #include "retroarch.h"
 
@@ -24,10 +24,13 @@ extern void os_dcache_clean_range(const void *addr, uint32_t len);
 
 #define RA_AUDIO_RING 4096u
 #define RA_AUDIO_AHEAD 256u
-#define RA_AUDIO_VOICE 6u
+#define RA_AUDIO_VOICE_L 6u
+#define RA_AUDIO_VOICE_R 7u
 #define RA_AUDIO_VOL 0x7000u
 
-static int16_t *ring = (int16_t *)(uintptr_t)AUDIO_PCM_ADDR;
+static int16_t *ring_l = (int16_t *)(uintptr_t)AUDIO_PCM_ADDR;
+static int16_t *ring_r =
+    (int16_t *)(uintptr_t)(AUDIO_PCM_ADDR + RA_AUDIO_RING * sizeof(int16_t));
 static int playing;
 static uint32_t rate;
 static uint32_t written;
@@ -38,7 +41,7 @@ static uint32_t played_now(void) {
   return (uint32_t)((us * rate) / 1000000ull);
 }
 
-static void clean_span(uint32_t index, uint32_t count) {
+static void clean_span(int16_t *ring, uint32_t index, uint32_t count) {
   uint32_t first = index & (RA_AUDIO_RING - 1u);
   uint32_t n1 = count;
   if (first + n1 > RA_AUDIO_RING)
@@ -51,7 +54,8 @@ static void clean_span(uint32_t index, uint32_t count) {
 void ra_audio_stop(void) {
   if (!playing)
     return;
-  app_core_post(AUDIO_CMD_VOICE_STOP, 1u << RA_AUDIO_VOICE, 0, 0, 0);
+  app_core_post(AUDIO_CMD_VOICE_STOP,
+                (1u << RA_AUDIO_VOICE_L) | (1u << RA_AUDIO_VOICE_R), 0, 0, 0);
   playing = 0;
 }
 
@@ -61,13 +65,17 @@ static void ra_audio_start(uint32_t new_rate) {
   ra_audio_stop();
   if (!snd_available() || new_rate < 8000u || new_rate > 48000u)
     return;
-  memset(ring, 0, RA_AUDIO_RING * sizeof(int16_t));
-  os_dcache_clean_range(ring, RA_AUDIO_RING * sizeof(int16_t));
+  memset(ring_l, 0, RA_AUDIO_RING * sizeof(int16_t) * 2);
+  os_dcache_clean_range(ring_l, RA_AUDIO_RING * sizeof(int16_t) * 2);
   rate = new_rate;
   written = RA_AUDIO_AHEAD;
   t0 = sys_micros();
-  app_core_post(AUDIO_CMD_VOICE, RA_AUDIO_VOICE | flags, (uint32_t)(uintptr_t)ring,
-                RA_AUDIO_RING * sizeof(int16_t), rate);
+  app_core_post(AUDIO_CMD_VOICE, RA_AUDIO_VOICE_L | flags,
+                (uint32_t)(uintptr_t)ring_l, RA_AUDIO_RING * sizeof(int16_t),
+                rate);
+  app_core_post(AUDIO_CMD_VOICE, RA_AUDIO_VOICE_R | flags,
+                (uint32_t)(uintptr_t)ring_r, RA_AUDIO_RING * sizeof(int16_t),
+                rate);
   playing = 1;
 }
 
@@ -96,10 +104,12 @@ size_t ra_audio_batch_cb(const int16_t *data, size_t frames) {
 
   at = written;
   for (i = 0; i < frames; i++) {
-    int32_t mono = ((int32_t)data[i * 2] + (int32_t)data[i * 2 + 1]) >> 1;
-    ring[(at + (uint32_t)i) & (RA_AUDIO_RING - 1u)] = (int16_t)mono;
+    uint32_t p = (at + (uint32_t)i) & (RA_AUDIO_RING - 1u);
+    ring_l[p] = data[i * 2];
+    ring_r[p] = data[i * 2 + 1];
   }
-  clean_span(at, (uint32_t)frames);
+  clean_span(ring_l, at, (uint32_t)frames);
+  clean_span(ring_r, at, (uint32_t)frames);
   written = at + (uint32_t)frames;
   return frames;
 }

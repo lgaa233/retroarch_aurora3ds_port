@@ -1,6 +1,6 @@
 # Limitations
 
-This is RetroArch **0.1.2** for AuroraOS: a working libretro frontend with
+This is RetroArch **0.1.3** for AuroraOS: a working libretro frontend with
 four statically linked cores. Picture, controls, the menu, SRAM saves,
 save states, and PCM sound work on the console. The list below is what
 this version does, not a list of broken features.

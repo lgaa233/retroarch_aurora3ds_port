@@ -24,6 +24,51 @@ static int skip_count;
 static bool frame_drawn;
 static bool skip_next;
 
+/* One framebuffer column, packed BGR, so the copy into VRAM can be word
+ * stores. A byte store to this RAM costs a full memory round trip; a word
+ * moves four bytes for the same price. Aurora's own screen fill does this. */
+static uint8_t colbuf[SCREEN_HEIGHT * 3 + 4] __attribute__((aligned(4)));
+
+static void store_run(volatile uint8_t *d, const uint8_t *s, unsigned n) {
+  if ((((uintptr_t)d ^ (uintptr_t)s) & 3u) != 0u) {
+    while (n--)
+      *d++ = *s++;
+    return;
+  }
+  while (n && ((uintptr_t)d & 3u)) {
+    *d++ = *s++;
+    n--;
+  }
+  {
+    volatile uint32_t *dw = (volatile uint32_t *)d;
+    const uint32_t *sw = (const uint32_t *)s;
+    unsigned words = n >> 2;
+    unsigned i;
+    for (i = 0; i < words; i++)
+      dw[i] = sw[i];
+    d += words << 2;
+    s += words << 2;
+    n &= 3u;
+  }
+  while (n--)
+    *d++ = *s++;
+}
+
+/* Four BGR pixels packed into three words, framebuffer order. */
+static void pack4(uint8_t *d, uint8_t b0, uint8_t g0, uint8_t r0, uint8_t b1,
+                  uint8_t g1, uint8_t r1, uint8_t b2, uint8_t g2, uint8_t r2,
+                  uint8_t b3, uint8_t g3, uint8_t r3) {
+  uint32_t w0 = (uint32_t)b0 | ((uint32_t)g0 << 8) | ((uint32_t)r0 << 16) |
+                ((uint32_t)b1 << 24);
+  uint32_t w1 = (uint32_t)g1 | ((uint32_t)r1 << 8) | ((uint32_t)b2 << 16) |
+                ((uint32_t)g2 << 24);
+  uint32_t w2 = (uint32_t)r2 | ((uint32_t)b3 << 8) | ((uint32_t)g3 << 16) |
+                ((uint32_t)r3 << 24);
+  ((uint32_t *)d)[0] = w0;
+  ((uint32_t *)d)[1] = w1;
+  ((uint32_t *)d)[2] = w2;
+}
+
 void ra_video_init(void) {
   lut_w = lut_h = 0;
   lut_mode = -1;
@@ -49,17 +94,16 @@ static void build_luts(int w, int h, int mode) {
     dst_w = SCREEN_TOP_WIDTH;
     dst_h = SCREEN_HEIGHT;
     break;
-  case RA_SCALE_FIT: {
-    /* Largest integer multiple that fits. Fractional upscaling painted
-     * several times more pixels than the core produced and pushed games
-     * under 60 fps, which slowed the sound with them. */
-    int s = 1;
-    while ((s + 1) * w <= SCREEN_TOP_WIDTH && (s + 1) * h <= SCREEN_HEIGHT)
-      s++;
-    dst_w = w * s;
-    dst_h = h * s;
+  case RA_SCALE_FIT:
+    /* The larger size that still fits, compared without floats. */
+    if (SCREEN_TOP_WIDTH * h <= SCREEN_HEIGHT * w) {
+      dst_w = SCREEN_TOP_WIDTH;
+      dst_h = h * SCREEN_TOP_WIDTH / w;
+    } else {
+      dst_h = SCREEN_HEIGHT;
+      dst_w = w * SCREEN_HEIGHT / h;
+    }
     break;
-  }
   case RA_SCALE_1X:
   default:
     dst_w = w < SCREEN_TOP_WIDTH ? w : SCREEN_TOP_WIDTH;
@@ -91,7 +135,7 @@ void ra_video_submit(const void *data, unsigned width, unsigned height,
                      size_t pitch) {
   uint8_t *fb;
   const uint8_t *src = data;
-  int x, y;
+  int x;
 
   frame_drawn = false;
   if (skip_next) {
@@ -119,47 +163,67 @@ void ra_video_submit(const void *data, unsigned width, unsigned height,
   fb = gfx_framebuffer(SCREEN_TOP);
 
   for (x = 0; x < dst_w; x++) {
-    /* Column (dst_x + x): y increasing means the address decreasing. */
-    uint8_t *dst = fb + (((dst_x + x) * SCREEN_HEIGHT) +
-                         (SCREEN_HEIGHT - 1 - dst_y)) * 3;
+    /* Increasing address is decreasing y, so the run starts at the bottom. */
+    int y_bottom = dst_y + dst_h - 1;
+    uint8_t *run = fb + (((dst_x + x) * SCREEN_HEIGHT) +
+                         (SCREEN_HEIGHT - 1 - y_bottom)) *
+                            3;
+    uint8_t *d = colbuf;
     int sx = lut_sx[x];
+    int y = dst_h - 1;
 
-    switch (src_fmt) {
-    case RETRO_PIXEL_FORMAT_RGB565: {
-      for (y = 0; y < dst_h; y++) {
-        const uint16_t *row = (const uint16_t *)(src + lut_sy[y] * pitch);
-        uint16_t c = row[sx];
-        dst[0] = (uint8_t)((c & 0x1F) << 3);         /* B */
-        dst[1] = (uint8_t)((c >> 3) & 0xFC);         /* G */
-        dst[2] = (uint8_t)((c >> 8) & 0xF8);         /* R */
-        dst -= 3;
+    while (y >= 3) {
+      uint8_t b[4], g[4], rch[4];
+      int k;
+      for (k = 0; k < 4; k++) {
+        int sy = lut_sy[y - k];
+        if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
+          uint32_t c = ((const uint32_t *)(src + sy * pitch))[sx];
+          b[k] = (uint8_t)c;
+          g[k] = (uint8_t)(c >> 8);
+          rch[k] = (uint8_t)(c >> 16);
+        } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
+          uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
+          b[k] = (uint8_t)((c & 0x1F) << 3);
+          g[k] = (uint8_t)(((c >> 5) & 0x1F) << 3);
+          rch[k] = (uint8_t)(((c >> 10) & 0x1F) << 3);
+        } else {
+          uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
+          b[k] = (uint8_t)((c & 0x1F) << 3);
+          g[k] = (uint8_t)((c >> 3) & 0xFC);
+          rch[k] = (uint8_t)((c >> 8) & 0xF8);
+        }
       }
-      break;
+      pack4(d, b[0], g[0], rch[0], b[1], g[1], rch[1], b[2], g[2], rch[2],
+            b[3], g[3], rch[3]);
+      d += 12;
+      y -= 4;
     }
-    case RETRO_PIXEL_FORMAT_XRGB8888: {
-      for (y = 0; y < dst_h; y++) {
-        const uint32_t *row = (const uint32_t *)(src + lut_sy[y] * pitch);
-        uint32_t c = row[sx];
-        dst[0] = (uint8_t)(c & 0xFF);         /* B */
-        dst[1] = (uint8_t)((c >> 8) & 0xFF);  /* G */
-        dst[2] = (uint8_t)((c >> 16) & 0xFF); /* R */
-        dst -= 3;
+    while (y >= 0) {
+      uint8_t b, g, rch;
+      int sy = lut_sy[y];
+      if (src_fmt == RETRO_PIXEL_FORMAT_XRGB8888) {
+        uint32_t c = ((const uint32_t *)(src + sy * pitch))[sx];
+        b = (uint8_t)c;
+        g = (uint8_t)(c >> 8);
+        rch = (uint8_t)(c >> 16);
+      } else if (src_fmt == RETRO_PIXEL_FORMAT_0RGB1555) {
+        uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
+        b = (uint8_t)((c & 0x1F) << 3);
+        g = (uint8_t)(((c >> 5) & 0x1F) << 3);
+        rch = (uint8_t)(((c >> 10) & 0x1F) << 3);
+      } else {
+        uint16_t c = ((const uint16_t *)(src + sy * pitch))[sx];
+        b = (uint8_t)((c & 0x1F) << 3);
+        g = (uint8_t)((c >> 3) & 0xFC);
+        rch = (uint8_t)((c >> 8) & 0xF8);
       }
-      break;
+      *d++ = b;
+      *d++ = g;
+      *d++ = rch;
+      y--;
     }
-    case RETRO_PIXEL_FORMAT_0RGB1555:
-    default: {
-      for (y = 0; y < dst_h; y++) {
-        const uint16_t *row = (const uint16_t *)(src + lut_sy[y] * pitch);
-        uint16_t c = row[sx];
-        dst[0] = (uint8_t)((c & 0x1F) << 3);        /* B */
-        dst[1] = (uint8_t)(((c >> 5) & 0x1F) << 3); /* G */
-        dst[2] = (uint8_t)(((c >> 10) & 0x1F) << 3);/* R */
-        dst -= 3;
-      }
-      break;
-    }
-    }
+    store_run(run, colbuf, (unsigned)dst_h * 3u);
   }
 
   gfx_mark(SCREEN_TOP);

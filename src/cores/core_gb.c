@@ -22,7 +22,6 @@ void audio_write(uint16_t addr, uint8_t val);
 
 #define ENABLE_SOUND 1
 #define ENABLE_LCD 1
-#define PEANUT_GB_HIGH_LCD_ACCURACY 0
 #include "peanut_gb.h"
 
 static retro_environment_t env_cb;

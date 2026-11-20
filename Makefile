@@ -22,7 +22,7 @@ INCLUDES := -I $(CURDIR)/src \
             -I $(CURDIR)/third_party/minigb_apu
 # The same flags parse for gcc and for aurcc.py's -D option.
 DEFINES  := -DNOZIP_SUPPORT -DMAXIM_PSG -DUSE_Z80 \
-            -DMINIGB_APU_AUDIO_FORMAT_S16SYS -DAUDIO_SAMPLE_RATE=11025
+            -DMINIGB_APU_AUDIO_FORMAT_S16SYS
 
 SMSPLUS_SRC := $(wildcard third_party/smsplus/*.c)
 

@@ -257,9 +257,6 @@ static bool sms_load_game(const struct retro_game_info *game) {
   bitmap.viewport.x = 0;
   bitmap.viewport.y = 0;
 
-  /* FM synthesis is too much for the ARM9 on top of the PSG. */
-  sms.use_fm = 0;
-  option.fm = 0;
   system_poweron();
 
   out_width = bitmap.viewport.w;
