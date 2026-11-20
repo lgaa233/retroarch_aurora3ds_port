@@ -1,0 +1,115 @@
+# Settings
+
+Open the menu (touch the bottom screen), then choose **Settings**.
+Changes apply immediately. They are written to `retroarch.cfg` when you
+leave Settings with **B** or with **A** on **Back**, and again when the
+app exits.
+
+Left cycles a value backward. Right and A cycle it forward. Up and Down
+move between rows.
+
+| Row on screen | What it does | Default |
+|---------------|--------------|---------|
+| Video Scale | `1x (centered)`, `Fit (keep aspect)`, or `Stretch (400x240)` | Fit |
+| Frameskip | `0` through `4` | 0 |
+| Show FPS | `On` / `Off` | Off |
+| Fast Fwd (hold R) | `On` / `Off`. Hold R in game to use it | Off |
+| Volume | `0%` to `125%` in 12.5% steps. A past 125% wraps to 0% | 100% |
+| Back | saves and returns to the main menu | |
+
+## Video scale
+
+The top screen is 400×240. Scaling is nearest-neighbor, done with integer
+math, and the picture is centered. Black borders fill whatever the
+picture does not cover. "Keep aspect" means the width and height of the
+frame the core just submitted. The blitter does not apply a separate
+television pixel-aspect ratio.
+
+| Mode | `scale` in the cfg | Behavior |
+|------|--------------------|----------|
+| 1x (centered) | `0` | one source pixel per screen pixel, centered. A frame larger than the screen on either axis is scaled down to that edge |
+| Fit (keep aspect) | `1` | the largest size that still fits in 400×240, nearest pixel |
+| Stretch (400x240) | `2` | always the full top screen |
+
+The copy onto the screen is packed into 32-bit stores, the same way Aurora fills a screen. Fit is the normal picture.
+With AuroraOS core 116 or later the scaling runs on the ARM11; otherwise
+the ARM9 does it, and Fit and Stretch cost more frame time.
+
+See [Limitations](Limitations.md).
+
+## Frameskip
+
+Frameskip `N` draws 1 frame out of `N + 1`. The core still runs the
+skipped frames; they are not copied to the screen.
+
+| Value | Drawn |
+|-------|-------|
+| 0 | every frame |
+| 1 | 1 of 2 |
+| 2 | 1 of 3 |
+| 3 | 1 of 4 |
+| 4 | 1 of 5 |
+
+Values outside 0–4 in the config file are put back to 0 on load.
+
+## Show FPS
+
+When this is On, a green counter is drawn in the top-left of the top
+screen (`60 fps ARM11 1.2ms`). The number is how many times the main loop
+ran the game during the last second; after it come where the picture was
+scaled (`ARM11` or `ARM9`) and how long the last frame's scaling took. The three extra core runs performed while
+fast-forwarding are not added to it, so the counter can stay near the
+refresh rate while the game is actually advancing faster.
+
+## Fast-forward
+
+**Fast Fwd (hold R)** only arms the feature. In the game, hold **R**.
+Each refresh then runs the core once (that run can still be frameskipped)
+plus three more runs whose pictures are dropped. At the 60 Hz refresh
+that is about four times normal speed.
+
+R remains the RetroPad R button for those frames. On ColecoVision that is
+keypad 3. On CHIP-8 that is key B. Other cores in this build do not read
+R as a game button.
+
+## Volume
+
+Scales the game sound before it reaches the speakers. `100%` plays it as
+the core made it; `125%` is louder and can clip loud games. The 3DS
+volume slider still applies on top.
+
+## `retroarch.cfg`
+
+The file is `<app dir>/retroarch.cfg`. For the standard install:
+
+```text
+SD:/Aurora/Apps/C/RetroArch/retroarch.cfg
+```
+
+It is plain text, one `key = value` per line:
+
+```text
+scale = 1
+frameskip = 0
+show_fps = 0
+fast_forward = 0
+volume = 8
+last_dir = /Aurora/ROMs/gb
+```
+
+| Key | Values |
+|-----|--------|
+| `scale` | `0` 1x, `1` Fit, `2` Stretch. Anything else loads as Fit |
+| `frameskip` | `0`–`4`. Anything else loads as `0` |
+| `show_fps` | `0` off, any other number on |
+| `fast_forward` | `0` off, any other number on |
+| `volume` | `0`–`10`, in eighths: `8` is 100%. Anything else loads as `8` |
+| `last_dir` | Aurora path reopened by **Load Content**. Empty until the first successful load. Paths look like `/Aurora/ROMs`, not `SD:/…` |
+
+Unknown lines are ignored. `last_dir` is updated when a ROM loads
+successfully, not when you merely browse. If that directory is gone, the
+browser falls back to `/Aurora/ROMs`.
+
+Editing the file on a PC is fine while RetroArch is not running. The app
+rewrites the whole file on exit, so in-game changes replace hand edits
+from that session.

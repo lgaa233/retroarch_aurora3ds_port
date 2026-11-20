@@ -4,13 +4,27 @@
  * with built-in state dump/restore. agnes.c is included directly into this
  * translation unit so the PPU's palette-index screen buffer can be converted
  * to RGB565 with one table lookup per pixel instead of 61k function calls
- * per frame, which matters on the 134 MHz ARM9.
+ * per frame, which matters on the ARM9. Sound is ra_nes_apu (2A03), fed
+ * through agnes's AGNES_HOOK_APU hooks.
  */
-#include "core.h"
+#include "retroarch.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "ra_nes_apu.h"
+
+#define AGNES_HOOK_APU
+static void agnes_hook_apu_step(uint32_t cycles) {
+  ra_nes_apu_step(cycles);
+}
+static void agnes_hook_apu_write(uint16_t addr, uint8_t val) {
+  ra_nes_apu_write(addr, val);
+}
+static uint8_t agnes_hook_apu_read(uint16_t addr) {
+  return ra_nes_apu_read(addr);
+}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -30,6 +44,10 @@ static size_t rom_size;
 static uint16_t fb[AGNES_SCREEN_HEIGHT][AGNES_SCREEN_WIDTH];
 static uint16_t color_lut[64];
 static bool lut_ready;
+
+static uint8_t dmc_read(void *ctx, uint16_t addr) {
+  return cpu_read8(&((agnes_t *)ctx)->cpu, addr);
+}
 
 static void build_lut(void) {
   int i;
@@ -58,6 +76,7 @@ static void nes_set_callbacks(retro_environment_t env,
 static void nes_init(void) {
   if (!lut_ready)
     build_lut();
+  ra_nes_apu_init();
 }
 
 static void nes_deinit(void) {}
@@ -91,12 +110,15 @@ static bool nes_load_game(const struct retro_game_info *game) {
   }
 
   memset(fb, 0, sizeof(fb));
+  ra_nes_apu_reset();
+  ra_nes_apu_set_reader(dmc_read, agn);
   if (env_cb)
     env_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
   return true;
 }
 
 static void nes_unload_game(void) {
+  ra_nes_apu_set_reader(NULL, NULL);
   if (agn) {
     agnes_destroy(agn);
     agn = NULL;
@@ -114,8 +136,9 @@ static void nes_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.max_height = AGNES_SCREEN_HEIGHT;
   info->geometry.aspect_ratio =
       (float)AGNES_SCREEN_WIDTH / (float)AGNES_SCREEN_HEIGHT;
-  info->timing.fps = 60.0;
-  info->timing.sample_rate = 0.0; /* no audio on AuroraOS */
+  /* NTSC: 29780.5 CPU cycles a frame. */
+  info->timing.fps = (double)RA_NES_APU_CPU_HZ * 2.0 / 59561.0;
+  info->timing.sample_rate = (double)RA_NES_APU_RATE;
 }
 
 static void nes_run(void) {
@@ -144,14 +167,23 @@ static void nes_run(void) {
   agnes_next_frame(agn);
 
   /* Palette indices to RGB565 through the lookup table. */
-  src = agn->ppu.screen_buffer;
-  dst = &fb[0][0];
-  for (i = 0; i < AGNES_SCREEN_WIDTH * AGNES_SCREEN_HEIGHT; i++)
-    dst[i] = color_lut[src[i] & 0x3F];
+  if (!ra_video_will_skip()) {
+    src = agn->ppu.screen_buffer;
+    dst = &fb[0][0];
+    for (i = 0; i < AGNES_SCREEN_WIDTH * AGNES_SCREEN_HEIGHT; i++)
+      dst[i] = color_lut[src[i] & 0x3F];
+  }
 
   if (video_cb)
     video_cb(fb, AGNES_SCREEN_WIDTH, AGNES_SCREEN_HEIGHT,
              AGNES_SCREEN_WIDTH * sizeof(uint16_t));
+
+  {
+    static int16_t samples[RA_NES_APU_MAX_SAMPLES * 2];
+    size_t n = ra_nes_apu_read_samples(samples, RA_NES_APU_MAX_SAMPLES);
+    if (n && audio_batch_cb)
+      audio_batch_cb(samples, n);
+  }
 }
 
 static void nes_reset(void) {
@@ -160,8 +192,11 @@ static void nes_reset(void) {
     return;
   agnes_destroy(agn);
   agn = agnes_make();
-  if (agn)
+  if (agn) {
     agnes_load_ines_data(agn, rom, rom_size);
+    ra_nes_apu_reset();
+  }
+  ra_nes_apu_set_reader(agn ? dmc_read : NULL, agn);
 }
 
 typedef struct {
@@ -171,12 +206,14 @@ typedef struct {
   uint32_t rom_size;
 } nes_state_header_t;
 
-#define NES_STATE_VERSION 1u
+/* 2 adds the APU after agnes's state; 1 (no APU) still loads. */
+#define NES_STATE_VERSION 2u
 
 static size_t nes_serialize_size(void) {
   if (!agn)
     return 0;
-  return sizeof(nes_state_header_t) + agnes_state_size();
+  return sizeof(nes_state_header_t) + agnes_state_size() +
+         ra_nes_apu_state_size();
 }
 
 static bool nes_serialize(void *data, size_t size) {
@@ -191,6 +228,7 @@ static bool nes_serialize(void *data, size_t size) {
   h.rom_size = (uint32_t)rom_size;
   memcpy(p, &h, sizeof(h));
   agnes_dump_state(agn, (agnes_state_t *)(p + sizeof(h)));
+  ra_nes_apu_save_state(p + sizeof(h) + h.state_size);
   return true;
 }
 
@@ -201,12 +239,22 @@ static bool nes_unserialize(const void *data, size_t size) {
   if (!agn || size < sizeof(h))
     return false;
   memcpy(&h, p, sizeof(h));
-  if (memcmp(h.magic, "AGNS", 4) != 0 || h.version != NES_STATE_VERSION ||
-      h.state_size != agnes_state_size() || h.rom_size != rom_size)
+  if (memcmp(h.magic, "AGNS", 4) != 0 || h.version < 1u ||
+      h.version > NES_STATE_VERSION || h.state_size != agnes_state_size() ||
+      h.rom_size != rom_size)
     return false;
   if (size < sizeof(h) + h.state_size)
     return false;
-  return agnes_restore_state(agn, (const agnes_state_t *)(p + sizeof(h)));
+  if (h.version >= 2u &&
+      size < sizeof(h) + h.state_size + ra_nes_apu_state_size())
+    return false;
+  if (!agnes_restore_state(agn, (const agnes_state_t *)(p + sizeof(h))))
+    return false;
+  if (h.version < 2u ||
+      !ra_nes_apu_load_state(p + sizeof(h) + h.state_size,
+                             size - sizeof(h) - h.state_size))
+    ra_nes_apu_reset();
+  return true;
 }
 
 static void *nes_get_memory_data(unsigned id) {

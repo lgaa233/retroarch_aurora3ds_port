@@ -607,6 +607,10 @@ bool agnes_tick(agnes_t *agnes, bool *out_new_frame) {
         return false;
     }
 
+#ifdef AGNES_HOOK_APU
+    agnes_hook_apu_step((uint32_t)cpu_cycles);
+#endif
+
     int ppu_cycles = cpu_cycles * 3;
     for (int i = 0; i < ppu_cycles; i++) {
         ppu_tick(&agnes->ppu, out_new_frame);
@@ -794,7 +798,9 @@ void cpu_write8(cpu_t *cpu, uint16_t addr, uint8_t val) {
             agnes->controllers[1].shift = agnes->controllers[1].state;
         }
     } else if (addr < 0x4018) { // apu and io
-
+#ifdef AGNES_HOOK_APU
+        agnes_hook_apu_write(addr, val);
+#endif
     } else if (addr < 0x4020) { // disabled
 
     } else {
@@ -813,7 +819,11 @@ uint8_t cpu_read8(cpu_t *cpu, uint16_t addr) {
     } else if (addr < 0x4000) {
         res = ppu_read_register(&agnes->ppu, 0x2000 | (addr & 0x7));
     } else if (addr < 0x4016) {
+#ifdef AGNES_HOOK_APU
+        res = agnes_hook_apu_read(addr);
+#else
         // apu
+#endif
     } else if (addr < 0x4018) {
         int controller = addr & 0x1; // 0: 0x4016, 1: 0x4017
         if (agnes->controllers_latch) {

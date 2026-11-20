@@ -197,8 +197,11 @@ int main(void) {
     if (ra_config.show_fps) {
       /* Drawn after the blit, so the game repaints under it next frame;
        * leaving the menu repaints the borders it may sit on. */
-      gfx_rect(SCREEN_TOP, 0, 0, 64, 12, COLOR_BLACK);
-      gfx_text(SCREEN_TOP, 2, 2, COLOR_GREEN, "%d fps", fps);
+      uint32_t us = ra_video_blit_us();
+      gfx_rect(SCREEN_TOP, 0, 0, 136, 12, COLOR_BLACK);
+      gfx_text(SCREEN_TOP, 2, 2, COLOR_GREEN, "%d fps %s %u.%ums", fps,
+               ra_video_path(), (unsigned)(us / 1000u),
+               (unsigned)(us / 100u % 10u));
     }
     ra_osd_draw();
   }

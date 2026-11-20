@@ -295,7 +295,7 @@ static void ch8_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry.max_height = C8_H;
   info->geometry.aspect_ratio = (float)C8_W / (float)C8_H;
   info->timing.fps = 60.0;
-  info->timing.sample_rate = 0.0;
+  info->timing.sample_rate = 32768.0;
 }
 
 static void ch8_run(void) {
@@ -322,6 +322,24 @@ static void ch8_run(void) {
     c8_step();
   if (c8.delay)
     c8.delay--;
+
+  /* A square wave while the sound timer is running, silence otherwise.
+   * 32768 Hz matches one batch to a 60 Hz frame. */
+  if (audio_batch_cb) {
+    enum { CH8_RATE = 32768, CH8_FRAMES = CH8_RATE / 60, CH8_STEP = 880 };
+    static uint16_t phase;
+    int16_t buf[CH8_FRAMES * 2];
+    int on = c8.sound != 0;
+    for (i = 0; i < CH8_FRAMES; i++) {
+      int16_t s = 0;
+      if (on)
+        s = (phase & 0x8000) ? 5000 : -5000;
+      phase = (uint16_t)(phase + CH8_STEP);
+      buf[i * 2] = s;
+      buf[i * 2 + 1] = s;
+    }
+    audio_batch_cb(buf, CH8_FRAMES);
+  }
   if (c8.sound)
     c8.sound--;
 

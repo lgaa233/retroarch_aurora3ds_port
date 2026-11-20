@@ -10,7 +10,7 @@
 #include <libretro.h>
 #include "cores/core.h"
 
-#define RA_VERSION "0.1.0"
+#define RA_VERSION "0.1.7"
 #define RA_NAME "RetroArch"
 
 #define RA_PATH_MAX 300
@@ -28,6 +28,7 @@ typedef struct {
   int frameskip;    /* 0..4: present 1 frame out of frameskip+1 */
   bool show_fps;
   bool fast_forward; /* hold R to run extra frames */
+  int volume;        /* 0..10, 8 plays the cores' sound unchanged */
   char last_dir[RA_PATH_MAX];
 } ra_config_t;
 
@@ -68,6 +69,10 @@ void ra_video_cb(const void *data, unsigned width, unsigned height,
                  size_t pitch);
 void ra_audio_sample_cb(int16_t left, int16_t right);
 size_t ra_audio_batch_cb(const int16_t *data, size_t frames);
+/* Silence the looping voice. The menu and unloading call this. */
+void ra_audio_stop(void);
+/* Times the sound ran dry (a frame came too late), since start-up. */
+uint32_t ra_audio_underruns(void);
 void ra_input_poll_cb(void);
 int16_t ra_input_state_cb(unsigned port, unsigned device, unsigned index,
                           unsigned id);
@@ -83,8 +88,14 @@ void ra_video_set_pixel_format(enum retro_pixel_format fmt);
 void ra_video_invalidate(void);
 /* True when the last submitted frame was actually drawn (not frameskipped). */
 bool ra_video_frame_drawn(void);
-/* Drop the next submitted frame (fast-forward runs the core blind). */
+/* Drop the next submitted frame (fast-forward and a slow previous frame). */
 void ra_video_skip_next(void);
+/* True when this frame's picture will be dropped, so a core can skip drawing. */
+bool ra_video_will_skip(void);
+/* Which CPU scales the picture ("ARM11", "ARM9"), and how long the last frame
+ * took, in microseconds. */
+const char *ra_video_path(void);
+uint32_t ra_video_blit_us(void);
 
 /* --- input (input.c) ------------------------------------------------------ */
 
