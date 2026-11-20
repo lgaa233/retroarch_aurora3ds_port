@@ -10,7 +10,7 @@
 #include <libretro.h>
 #include "cores/core.h"
 
-#define RA_VERSION "0.1.7"
+#define RA_VERSION "0.1.8"
 #define RA_NAME "RetroArch"
 
 #define RA_PATH_MAX 300
@@ -43,7 +43,7 @@ typedef struct {
   const ra_core_t *core;
   char rom_path[RA_PATH_MAX];
   char rom_name[64]; /* file name without folder or extension */
-  void *rom_data;    /* kept for the life of the game (agnes aliases it) */
+  void *rom_data;    /* kept for the life of the game; some cores alias it */
   size_t rom_size;
   struct retro_system_av_info av;
   bool running;

@@ -26,8 +26,8 @@ no subdirectories and no file with a known extension.
 
 * ROMs belong in `SD:/Aurora/ROMs`, which the app creates on first launch.
   On a PC you create that folder yourself and copy dumps in.
-* Extensions are `.gb`, `.dmg`, `.nes`, `.sms`, `.gg`, `.sg`, `.col`, and
-  `.ch8` only. `.gbc`, `.gba`, `.zip`, and `.7z` are hidden.
+* Extensions are `.gb`, `.dmg`, `.sms`, `.gg`, `.sg`, `.col`, and
+  `.ch8` only. `.nes`, `.gbc`, `.gba`, `.zip`, and `.7z` are hidden.
 * Zip files are not opened. Extract them and keep the raw ROM.
 * If the line says `(first 256 entries shown)`, the folder has more than
   the browser will list. Move games into subfolders of at most 256
@@ -44,8 +44,6 @@ The file was visible, and the core rejected it.
 * ColecoVision: `/Aurora/ROMs/BIOS.col` must exist and be **exactly 8192
   bytes**. A BIOS in a subfolder does not count. `bios.sms` is not read
   by this port and will not satisfy ColecoVision.
-* NES: agnes only loads iNES mappers 0, 1, 2, and 4. Other mappers fail
-  here.
 * Game Boy: the file must be a DMG ROM Peanut-GB accepts, at least 336
   bytes. Game Boy Color-only dumps are outside this core.
 * Master System / Game Gear / SG-1000: the file must be at least 1024
@@ -59,7 +57,7 @@ The size and mapper rules are collected on
 
 ## A game is silent
 
-Sound works on all built-in cores, including NES. If a game is silent,
+Sound works on all built-in cores. If a game is silent,
 confirm you launched RetroArch from the Aurora Home Menu (not a direct
 `*.3dsx` shortcut) and that you resumed after opening the in-game menu.
 
@@ -93,9 +91,9 @@ ColecoVision that hold is also keypad 3. On CHIP-8 it is also key B.
 | What you see | What it means |
 |--------------|----------------|
 | No `.srm` for a Game Boy | the header reported no cart RAM, or you have not left the game yet |
-| No `.srm` for NES or CHIP-8 | those cores do not expose save RAM. Use a save state |
+| No `.srm` for CHIP-8 | that core does not expose save RAM. Use a save state |
 | A 32 KB `.srm` for SG-1000 or ColecoVision | expected. SMS Plus exposes a 32 KB buffer for every one of its games |
-| Progress vanished but the `.srm` exists | another ROM with the same base name shares the file (`Quest.gb` and `Quest.nes` both use `Quest.srm`) |
+| Progress vanished but the `.srm` exists | another ROM with the same base name shares the file (`Quest.gb` and `Quest.sms` both use `Quest.srm`) |
 | `No state in slot N` | that `.stateN` has not been written |
 | `Bad state file` | different ROM, truncated file, or a state from another RetroArch build |
 | `SD write failed` | the card did not accept the write |
@@ -130,9 +128,8 @@ replace it with the values from the session.
 
 ## What this version does
 
-Version 0.1.7 runs on the console. Picture, the menu, saves, save
-states, and PCM sound work on all built-in cores, including NES.
+Version 0.1.8 runs on the console. Picture, the menu, saves, save
+states, and PCM sound work on all built-in cores.
 `make test` also runs the cores on a PC with synthetic ROMs.
 [Limitations](Limitations.md) lists the boundaries that are still real,
-such as mono sound, NES APU IRQs that do not reach the CPU, and no New 3DS
-extra buttons.
+such as mono sound and no New 3DS extra buttons.

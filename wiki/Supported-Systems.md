@@ -1,18 +1,17 @@
 # Supported Systems
 
-Version 0.1.7 links four cores into `RetroArch.bin`. There is no core
+Version 0.1.8 links three cores into `RetroArch.bin`. There is no core
 downloader and no dynamic loader. A system that is not in the table is
-not playable by renaming the file.
+not playable by renaming the file. NES / Famicom (`.nes`) is not one of
+them.
 
-All four cores are integer-only, which is why they were chosen for an
-ARM9 with no FPU. NES outputs PCM at 32768 Hz from a full 2A03 APU
-(pulses, triangle, noise, DMC). The other cores also play PCM. See
+All three cores are integer-only, which is why they were chosen for an
+ARM9 with no FPU. Each of them plays PCM. See
 [Limitations](Limitations.md).
 
 | Core (as shown in Information) | System | Extensions | SRAM `.srm` | Save states |
 |--------------------------------|--------|------------|-------------|-------------|
 | Peanut-GB `head` | Game Boy, original DMG | `.gb` `.dmg` | yes, when the cart header has RAM | yes |
-| agnes `0.2.0` | NES / Famicom | `.nes` | no | yes |
 | SMS Plus GX `head` | Master System, Game Gear, SG-1000, ColecoVision | `.sms` `.gg` `.sg` `.col` | always 32 KB | yes |
 | chip8 `1.0` | CHIP-8 | `.ch8` | no | yes |
 
@@ -33,26 +32,6 @@ the frontend loads and writes `<romname>.srm`. Carts with no RAM do not
 get an `.srm`. Save states include the CPU state and that cart RAM, and
 they only load back into the same ROM on a build whose `struct gb_s` is
 the same size.
-
-## NES / Famicom (agnes)
-
-[agnes](https://github.com/kgabis/agnes) 0.2.0 loads iNES (`.nes`) files.
-The mappers it implements are:
-
-| iNES mapper | Common name |
-|-------------|-------------|
-| 0 | NROM |
-| 1 | MMC1 |
-| 2 | UxROM |
-| 4 | MMC3 |
-
-Any other mapper fails to load (`Could not load …`). The picture is
-256×240. One standard controller is read.
-
-agnes does not expose cartridge RAM through the libretro save-RAM API, so
-this frontend never writes an `.srm` for NES games. Battery-backed
-progress exists only inside a save state. The state header stores the ROM
-size and the agnes state size; a mismatch is `Bad state file`.
 
 ## Master System, Game Gear, SG-1000 (SMS Plus GX)
 

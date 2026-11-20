@@ -17,10 +17,8 @@ AURCC    := $(AURORA_DIR)/sdk/aurcc.py
 INCLUDES := -I $(CURDIR)/src \
             -I $(CURDIR)/third_party/libretro \
             -I $(CURDIR)/third_party/peanut_gb \
-            -I $(CURDIR)/third_party/agnes \
             -I $(CURDIR)/third_party/smsplus \
             -I $(CURDIR)/third_party/minigb_apu \
-            -I $(CURDIR)/third_party/nes_apu \
             -I $(CURDIR)/arm11 \
             -I $(CURDIR)/build
 # The same flags parse for gcc and for aurcc.py's -D option.
@@ -32,7 +30,6 @@ SMSPLUS_SRC := $(wildcard third_party/smsplus/*.c)
 SOURCES := $(wildcard src/*.c src/*.h src/cores/*.c src/cores/*.h) \
            $(SMSPLUS_SRC) $(wildcard third_party/smsplus/*.h) \
            third_party/minigb_apu/minigb_apu.c third_party/minigb_apu/minigb_apu.h \
-           third_party/nes_apu/ra_nes_apu.c third_party/nes_apu/ra_nes_apu.h \
            arm11/ra_blit.c arm11/ra_blit.h arm11/blit11.h \
            src/RetroArch.icon
 
@@ -66,7 +63,7 @@ build/blit11_blob.h: build/blit11.elf tools/bin2h.py
 
 $(OUT): $(AURCC) $(SOURCES) build/blit11_blob.h
 	CPATH=$(CURDIR)/compat python3 $(AURCC) build src third_party/smsplus \
-	  third_party/minigb_apu third_party/nes_apu -o $(OUT) $(INCLUDES) $(DEFINES)
+	  third_party/minigb_apu -o $(OUT) $(INCLUDES) $(DEFINES)
 
 # Host tests: the cores and the scaler never touch the Aurora SDK, so they
 # build and run on the PC with synthetic ROMs and frames.
@@ -92,16 +89,15 @@ build/test_blit9: tests/host/test_blit.c arm11/ra_blit.c arm11/ra_blit.h
 	  tests/host/test_blit.c
 
 TEST_SRC := tests/host/test_cores.c src/cores/cores.c src/cores/core_gb.c \
-            src/cores/core_nes.c src/cores/core_sms.c src/cores/core_chip8.c \
-            third_party/minigb_apu/minigb_apu.c \
-            third_party/nes_apu/ra_nes_apu.c $(SMSPLUS_SRC)
+            src/cores/core_sms.c src/cores/core_chip8.c \
+            third_party/minigb_apu/minigb_apu.c $(SMSPLUS_SRC)
 
 build/test_cores: $(TEST_SRC) src/cores/core.h
 	@mkdir -p build
 	$(CC) -O1 -g -Wall -Wextra -Wno-unused-parameter $(DEFINES) \
-	  -I third_party/libretro -I third_party/peanut_gb -I third_party/agnes \
+	  -I third_party/libretro -I third_party/peanut_gb \
 	  -I third_party/smsplus -I third_party/minigb_apu \
-	  -I third_party/nes_apu -I src \
+	  -I src \
 	  -o $@ $(TEST_SRC) -lm
 
 clean:

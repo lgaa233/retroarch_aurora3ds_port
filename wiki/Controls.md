@@ -32,7 +32,7 @@ the 60 Hz refresh. R is still RetroPad R while you hold it, so on
 ColecoVision that hold is also keypad **3**, and on CHIP-8 it is also key
 **B**.
 
-Per-system meaning of the face buttons is below. Game Boy and NES use the
+Per-system meaning of the face buttons is below. Game Boy uses the
 obvious layout. Master System, Game Gear, SG-1000, and ColecoVision do
 not.
 
@@ -63,21 +63,6 @@ Peanut-GB reads the Game Boy buttons only.
 | SELECT | Select |
 
 L, R, X, and Y are not wired to the Game Boy.
-
-## NES / Famicom
-
-agnes reads one standard controller.
-
-| 3DS | NES |
-|-----|-----|
-| D-pad / circle pad | D-pad |
-| A | A |
-| B | B |
-| START | Start |
-| SELECT | Select |
-
-The Famicom microphone, the Zapper, and four-player adapters are not
-implemented.
 
 ## Master System, Game Gear, and SG-1000
 

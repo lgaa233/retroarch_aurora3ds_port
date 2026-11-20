@@ -4,7 +4,6 @@
 
 const ra_core_t *const ra_cores[] = {
   &ra_core_gb,
-  &ra_core_nes,
   &ra_core_sms,
   &ra_core_chip8,
 };

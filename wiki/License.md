@@ -21,7 +21,6 @@ authoritative text.
 |------|---------|---------|
 | `third_party/libretro/libretro.h` | libretro API header | MIT. Copyright (C) 2010-2024 The RetroArch team. The MIT grant applies to that header only |
 | `third_party/peanut_gb/peanut_gb.h` | [Peanut-GB](https://github.com/deltabeard/Peanut-GB) | MIT. Copyright (c) 2018-2023 Mahyar Koshkouei. The header also notes code taken from SameBoy |
-| `third_party/agnes/` | [agnes](https://github.com/kgabis/agnes) | MIT. Copyright (c) 2019 Krzysztof Gabis (the `LICENSE` file); `agnes.h` also says Copyright (c) 2022 Krzysztof Gabis |
 | `third_party/smsplus/` | [SMS Plus GX](https://github.com/libretro/smsplus-gx) | GPL-2.0 or later. Copyright (C) 1998-2007 Charles MacDonald, with additional code by Eke-Eke and gameblabla. See the headers in that directory |
 
 `compat/dirent.h`, the frontend sources under `src/`, and the host tests
