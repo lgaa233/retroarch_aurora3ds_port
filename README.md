@@ -15,6 +15,11 @@ API — cores written for libretro port over with their entry points intact.
 Works on **every 3DS model** (Old/New 3DS, 2DS, XL): Aurora apps run on the
 ARM9, which is identical across the family.
 
+## Wiki
+
+How to install AuroraOS and RetroArch, load ROMs, use the menu, and read
+the limits of this version is in the [wiki](wiki/Home.md).
+
 ## Cores
 
 | Core | System | Extensions | Save states | SRAM |
@@ -31,9 +36,8 @@ All are integer-only emulators chosen for the FPU-less 134 MHz ARM9. There is
 no dynamic loader on AuroraOS, so cores are linked in behind a descriptor
 struct, the way RetroArch's own static (griffin) builds link cores.
 
-ColecoVision games need the console's BIOS as `SD:/Aurora/ROMs/BIOS.col`
-(8 KB). An optional Master System BIOS is picked up from
-`SD:/Aurora/ROMs/bios.sms`.
+ColecoVision games need an 8192-byte BIOS dump named `BIOS.col` in
+`SD:/Aurora/ROMs`. This port does not load a Master System `bios.sms`.
 
 ## Install
 
